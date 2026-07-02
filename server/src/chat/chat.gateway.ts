@@ -52,7 +52,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new WsException('Session expired or revoked');
       }
 
-      // Зберігаємо userId всередині клієнтського об'єкта сокета
+      
       client.data.userId = userId;
     } catch (err) {
       client.disconnect();
@@ -60,7 +60,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   handleDisconnect(client: Socket) {
-    // Тут можна додати логіку зміни статусу на "offline"
+    
   }
 
   @SubscribeMessage('joinRoom')
@@ -98,12 +98,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('You are not a member of this room');
     }
 
-    // Перевірка на мут
+    
     if (member.mutedUntil && member.mutedUntil > new Date()) {
       throw new WsException(`You are muted until ${member.mutedUntil.toISOString()}`);
     }
 
-    // Зберігаємо повідомлення в БД
+    
     const message = this.messageRepository.create({
       content: data.content,
       senderId: userId,
@@ -111,7 +111,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     const savedMessage = await this.messageRepository.save(message);
 
-    // Створюємо чіткий об'єкт для відправки
+    
     const payload = {
       id: savedMessage.id,
       content: savedMessage.content,
@@ -123,7 +123,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       },
     };
 
-    // Розсилаємо всім користувачам у цій кімнаті
+    
     this.server.to(data.roomId).emit('newMessage', payload);
 
     return payload;

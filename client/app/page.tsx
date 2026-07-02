@@ -4,7 +4,6 @@ import { LandingHero } from '@/features/landing/components/LandingHero';
 import { RoomList } from '@/features/rooms/components/RoomList';
 import { RoomActions } from '@/features/rooms/components/RoomActions';
 import { UserActions } from '@/features/auth/components/UserActions';
-import styles from '@/features/rooms/styles/Rooms.module.css';
 
 export default async function HomePage() {
   const cookieStore = await cookies();
@@ -18,35 +17,36 @@ export default async function HomePage() {
   let rooms = [];
 
   try {
-    // Fetch user and rooms simultaneously using the serverFetch utility
+    
     [user, rooms] = await Promise.all([
       serverFetch('/auth/me'),
       serverFetch('/rooms'),
     ]);
 
-    // Sort rooms: owner first, then member
-    rooms.sort((a: any, b: any) => {
+    
+    rooms.sort((a: { role?: string }, b: { role?: string }) => {
       if (a.role === 'owner' && b.role !== 'owner') return -1;
       if (a.role !== 'owner' && b.role === 'owner') return 1;
       return 0;
     });
   } catch (err) {
     console.error('Failed to fetch data on server:', err);
-    // If token is invalid or expired, render Landing. The client-side axios interceptor
-    // will eventually clean up the zustand store, but the cookie needs clearing too.
+    
     return <LandingHero />;
   }
 
   return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Hello, {user?.username}</h1>
-        <UserActions btnClassName={styles.logoutBtn} />
+    <div className="p-10 max-w-[900px] mx-auto text-white font-sans min-h-screen">
+      <header className="flex justify-between items-center mb-10">
+        <h1 className="text-4xl font-extrabold m-0 bg-gradient-to-br from-purple-400 to-indigo-500 text-transparent bg-clip-text">
+          Hello, {user?.username}
+        </h1>
+        <UserActions btnClassName="bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl py-2 px-4 cursor-pointer transition-colors duration-200 font-medium hover:bg-red-500/20" />
       </header>
 
       <RoomActions />
 
-      <h2 className={styles.sectionTitle}>Your Chats</h2>
+      <h2 className="text-xl font-semibold mb-5 text-[#d1d1e0]">Your Chats</h2>
       
       <RoomList rooms={rooms} />
     </div>

@@ -133,7 +133,6 @@ export class RoomsService {
 
     await this.roomMemberRepository.remove(targetMember);
 
-    // Emit event to notify the kicked user
     this.chatGateway.server.to(roomId).emit('userKicked', { targetUserId });
 
     return { success: true };

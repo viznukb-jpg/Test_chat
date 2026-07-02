@@ -26,7 +26,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   async validate(payload: JwtPayload) {
     const userId = payload.sub;
 
-    // Перевірка Whitelist у Redis
+    
     const sessionToken = await this.redisService.get(`auth:sessions:${userId}`);
     
     if (!sessionToken) {

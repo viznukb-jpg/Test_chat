@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function middleware(request: NextRequest) {
-  // TODO: Тут ми пізніше додамо логіку перевірки доступу
-  // Наприклад: якщо юзер не має токена і намагається зайти на /chat, перенаправимо на /login
+  
   return NextResponse.next();
 }
 

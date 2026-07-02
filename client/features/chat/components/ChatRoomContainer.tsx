@@ -7,7 +7,6 @@ import { ChatSidebar } from './ChatSidebar';
 import { ChatMessages } from './ChatMessages';
 import { ChatInput } from './ChatInput';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import styles from '../styles/ChatWindow.module.css';
 
 interface Member {
   id: string;
@@ -41,10 +40,10 @@ export function ChatRoomContainer({ roomId, initialMembers, initialMessages }: C
 
   return (
     <>
-      <div className={styles.container}>
+      <div className="flex h-screen bg-gradient-to-br from-[#1e1e2f] to-[#252542] text-white font-sans">
         <ChatSidebar roomId={roomId} initialMembers={initialMembers} />
         
-        <div className={styles.chatArea}>
+        <div className="flex-1 flex flex-col relative">
           <ChatMessages messages={messages.length > 0 ? messages : initialMessages} error={error} />
           <ChatInput onSend={sendMessage} />
         </div>

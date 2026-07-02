@@ -25,6 +25,7 @@ export function UserActions({ btnClassName }: { btnClassName?: string }) {
         router.refresh();
         toast.success('Account deleted successfully');
       } catch (err) {
+        console.error('Failed to delete account', err);
         toast.error('Failed to delete account');
       }
     }

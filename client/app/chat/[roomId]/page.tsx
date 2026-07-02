@@ -23,7 +23,7 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
     ]);
   } catch (err) {
     console.error('Failed to load chat data:', err);
-    // If room doesn't exist or user not in room
+    
     redirect('/');
   }
 

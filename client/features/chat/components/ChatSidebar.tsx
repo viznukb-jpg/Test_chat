@@ -8,7 +8,6 @@ import axios from 'axios';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import { roomsApi } from '@/features/rooms/api/rooms.api';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
-import styles from '../styles/ChatWindow.module.css';
 
 interface Member {
   id: string;
@@ -84,43 +83,42 @@ export function ChatSidebar({ roomId, initialMembers }: ChatSidebarProps) {
 
   return (
     <>
-      <div className={styles.sidebar}>
-        <div className={styles.sidebarHeader}>
-          <Link href="/" className={styles.backBtn}>← Back to Rooms</Link>
+      <div className="w-[280px] bg-black/20 border-r border-white/5 flex flex-col">
+        <div className="p-5 border-b border-white/5">
+          <Link href="/" className="text-purple-400 no-underline text-sm font-medium inline-block mb-3 hover:underline">← Back to Rooms</Link>
           <h2>Room Members</h2>
         </div>
-        <div className={styles.memberList}>
+        <div className="flex-1 overflow-y-auto p-5">
           {members.map(m => {
             const isMuted = m.mutedUntil && new Date(m.mutedUntil) > new Date();
             return (
-              <div key={m.id} className={styles.memberItem}>
+              <div key={m.id} className="flex justify-between items-center mb-3 bg-white/5 p-2.5 rounded-xl">
                 <div>
-                  <div className={styles.memberName}>{m.user.username} {m.user.id === user?.id && '(You)'}</div>
-                  <div className={styles.memberRole}>{m.role}</div>
+                  <div className="text-sm font-medium">{m.user.username} {m.user.id === user?.id && '(You)'}</div>
+                  <div className="text-[10px] text-purple-400 uppercase tracking-widest">{m.role}</div>
                   {isMuted && (
-                    <div style={{ color: '#ff4d4f', fontSize: '10px' }}>Muted</div>
+                    <div className="text-red-500 text-[10px]">Muted</div>
                   )}
                 </div>
                 {isOwner && m.user.id !== user?.id && (
-                  <div className={styles.actionBtns}>
+                  <div className="flex gap-1.5 mt-1.5">
                     {isMuted ? (
                       <button 
-                        className={styles.muteBtn} 
-                        style={{ background: 'rgba(99, 102, 241, 0.2)', color: '#6366f1', border: '1px solid rgba(99, 102, 241, 0.3)' }}
+                        className="bg-indigo-500/20 text-indigo-500 border border-indigo-500/30 text-[11px] py-1 px-2 rounded cursor-pointer"
                         onClick={() => setModalState({ type: 'unmute', targetId: m.user.id })}
                       >
                         Unmute
                       </button>
                     ) : (
                       <button 
-                        className={styles.muteBtn} 
+                        className="bg-white/10 border-none text-white text-[11px] py-1 px-2 rounded cursor-pointer"
                         onClick={() => setModalState({ type: 'mute', targetId: m.user.id })}
                       >
                         Mute
                       </button>
                     )}
                     <button 
-                      className={styles.kickBtn} 
+                      className="bg-red-500/20 border-none text-red-500 text-[11px] py-1 px-2 rounded cursor-pointer"
                       onClick={() => setModalState({ type: 'kick', targetId: m.user.id })}
                     >
                       Kick
@@ -132,19 +130,19 @@ export function ChatSidebar({ roomId, initialMembers }: ChatSidebarProps) {
           })}
         </div>
         {isOwner ? (
-          <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <div className="p-5 border-t border-white/5">
             <button 
               onClick={() => setModalState({ type: 'delete' })}
-              style={{ width: '100%', padding: '10px', background: 'rgba(255, 77, 79, 0.2)', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+              className="w-full p-2.5 bg-red-500/20 text-red-500 border border-red-500/30 rounded-lg cursor-pointer font-semibold"
             >
               Delete Room
             </button>
           </div>
         ) : (
-          <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+          <div className="p-5 border-t border-white/5">
             <button 
               onClick={() => setModalState({ type: 'leave' })}
-              style={{ width: '100%', padding: '10px', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+              className="w-full p-2.5 bg-white/10 text-white border border-white/20 rounded-lg cursor-pointer font-semibold"
             >
               Leave Room
             </button>

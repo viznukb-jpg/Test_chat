@@ -54,7 +54,7 @@ export class AuthService {
 
   async logout(userId: string) {
     await this.redisService.del(`auth:sessions:${userId}`);
-    // Soft delete all refresh tokens for this user
+    
     await this.refreshTokenRepository.softDelete({ userId });
     return { success: true };
   }
@@ -67,9 +67,9 @@ export class AuthService {
   }
 
   async deleteAccount(userId: string) {
-    // 1. Delete session from Redis
+    
     await this.redisService.del(`auth:sessions:${userId}`);
-    // 2. Delete user from DB (cascade should handle rooms/messages where applicable)
+    
     await this.usersService.delete(userId);
     return { success: true };
   }
@@ -91,7 +91,6 @@ export class AuthService {
 
     const user = refreshTokenRecord.user;
     
-    // Soft remove the old token
     await this.refreshTokenRepository.softRemove(refreshTokenRecord);
 
     return this.generateTokens(user.id);
@@ -101,15 +100,15 @@ export class AuthService {
     const payload = { sub: userId };
     const accessToken = this.jwtService.sign(payload);
     
-    // Save to Redis (Whitelist)
-    // 15 mins for access token TTL in Redis
+    
+    
     const TTL_15_MINS = 15 * 60;
     await this.redisService.set(`auth:sessions:${userId}`, accessToken, 'EX', TTL_15_MINS);
 
-    // Generate refresh token
+    
     const refreshTokenString = randomBytes(40).toString('hex');
     
-    // 7 days expiration for refresh token
+    
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
