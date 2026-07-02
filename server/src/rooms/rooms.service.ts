@@ -8,6 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Room } from './entities/room.entity';
 import { RoomMember, RoomRole } from './entities/room-member.entity';
+import { Message } from '@/chat/entities/message.entity';
 import { randomBytes } from 'crypto';
 
 @Injectable()
@@ -17,7 +18,49 @@ export class RoomsService {
     private readonly roomRepository: Repository<Room>,
     @InjectRepository(RoomMember)
     private readonly roomMemberRepository: Repository<RoomMember>,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
   ) {}
+
+  async getUserRooms(userId: string) {
+    const members = await this.roomMemberRepository.find({
+      where: { userId },
+      relations: { room: true },
+    });
+    return members.map((m) => m.room);
+  }
+
+  async getRoomMembers(userId: string, roomId: string) {
+    await this.verifyOwnership(userId, roomId, false);
+
+    return this.roomMemberRepository.find({
+      where: { roomId },
+      relations: { user: true },
+      select: {
+        id: true,
+        role: true,
+        mutedUntil: true,
+        joinedAt: true,
+        user: { id: true, username: true },
+      },
+    });
+  }
+
+  async getRoomMessages(userId: string, roomId: string) {
+    await this.verifyOwnership(userId, roomId, false);
+
+    return this.messageRepository.find({
+      where: { roomId },
+      relations: { sender: true },
+      order: { createdAt: 'ASC' },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        sender: { id: true, username: true },
+      },
+    });
+  }
 
   async createRoom(userId: string, title: string): Promise<Room> {
     const joinCode = randomBytes(4).toString('hex').toUpperCase();
@@ -69,7 +112,7 @@ export class RoomsService {
   }
 
   async kickUser(ownerId: string, roomId: string, targetUserId: string) {
-    await this.verifyOwnership(ownerId, roomId);
+    await this.verifyOwnership(ownerId, roomId, true);
 
     const targetMember = await this.roomMemberRepository.findOne({
       where: { userId: targetUserId, roomId },
@@ -93,7 +136,7 @@ export class RoomsService {
     targetUserId: string,
     durationMins: number,
   ) {
-    await this.verifyOwnership(ownerId, roomId);
+    await this.verifyOwnership(ownerId, roomId, true);
 
     const targetMember = await this.roomMemberRepository.findOne({
       where: { userId: targetUserId, roomId },
@@ -116,7 +159,7 @@ export class RoomsService {
     return { success: true, mutedUntil };
   }
 
-  private async verifyOwnership(userId: string, roomId: string) {
+  private async verifyOwnership(userId: string, roomId: string, requireOwner: boolean) {
     const member = await this.roomMemberRepository.findOne({
       where: { userId, roomId },
     });
@@ -125,7 +168,7 @@ export class RoomsService {
       throw new ForbiddenException('You are not in this room');
     }
 
-    if (member.role !== RoomRole.OWNER) {
+    if (requireOwner && member.role !== RoomRole.OWNER) {
       throw new ForbiddenException('Only room owners can perform this action');
     }
   }
