@@ -29,7 +29,7 @@ export class RoomMember {
   role!: RoomRole;
 
   @Column({ type: 'timestamp', nullable: true })
-  mutedUntil!: Date;
+  mutedUntil!: Date | null;
 
   @ManyToOne(() => User, (user: User) => user.roomMembers, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'userId' })

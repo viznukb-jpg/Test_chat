@@ -70,6 +70,15 @@ export class RoomsController {
     );
   }
 
+  @Patch(':roomId/members/:targetUserId/unmute')
+  async unmuteUser(
+    @Req() req: AuthRequest,
+    @Param('roomId') roomId: string,
+    @Param('targetUserId') targetUserId: string,
+  ) {
+    return this.roomsService.unmuteUser(req.user.userId, roomId, targetUserId);
+  }
+
   @Delete(':roomId')
   async deleteRoom(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
     return this.roomsService.deleteRoom(req.user.userId, roomId);

@@ -159,6 +159,23 @@ export class RoomsService {
     return { success: true, mutedUntil };
   }
 
+  async unmuteUser(ownerId: string, roomId: string, targetUserId: string) {
+    await this.verifyOwnership(ownerId, roomId, true);
+
+    const targetMember = await this.roomMemberRepository.findOne({
+      where: { userId: targetUserId, roomId },
+    });
+
+    if (!targetMember) {
+      throw new NotFoundException('Target user is not in this room');
+    }
+
+    targetMember.mutedUntil = null;
+    await this.roomMemberRepository.save(targetMember);
+
+    return { success: true };
+  }
+
   async deleteRoom(userId: string, roomId: string) {
     await this.verifyOwnership(userId, roomId, true);
     await this.roomRepository.delete(roomId);
