@@ -81,6 +81,18 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
     }
   };
 
+  const handleDeleteRoom = async () => {
+    if (!window.confirm('Are you sure you want to delete this room? This action cannot be undone.')) return;
+    try {
+      await roomsApi.deleteRoom(roomId);
+      router.push('/');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        alert(err.response?.data?.message || 'Failed to delete room');
+      }
+    }
+  };
+
   const myMember = members.find(m => m.user.id === user?.id);
   const isOwner = myMember?.role === 'owner';
 
@@ -111,6 +123,16 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
             </div>
           ))}
         </div>
+        {isOwner && (
+          <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <button 
+              onClick={handleDeleteRoom}
+              style={{ width: '100%', padding: '10px', background: 'rgba(255, 77, 79, 0.2)', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Delete Room
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Chat Area */}

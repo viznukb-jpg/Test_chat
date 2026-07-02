@@ -24,5 +24,9 @@ export const roomsApi = {
   async muteUser(roomId: string, targetUserId: string, durationMins: number) {
     const res = await apiClient.patch(`/rooms/${roomId}/members/${targetUserId}/mute`, { durationMins });
     return res.data;
+  },
+  async deleteRoom(roomId: string) {
+    const res = await apiClient.delete(`/rooms/${roomId}`);
+    return res.data;
   }
 };

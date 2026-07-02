@@ -159,6 +159,12 @@ export class RoomsService {
     return { success: true, mutedUntil };
   }
 
+  async deleteRoom(userId: string, roomId: string) {
+    await this.verifyOwnership(userId, roomId, true);
+    await this.roomRepository.delete(roomId);
+    return { success: true };
+  }
+
   private async verifyOwnership(userId: string, roomId: string, requireOwner: boolean) {
     const member = await this.roomMemberRepository.findOne({
       where: { userId, roomId },

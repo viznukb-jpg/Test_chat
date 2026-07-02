@@ -69,4 +69,9 @@ export class RoomsController {
       body.durationMins,
     );
   }
+
+  @Delete(':roomId')
+  async deleteRoom(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
+    return this.roomsService.deleteRoom(req.user.userId, roomId);
+  }
 }
