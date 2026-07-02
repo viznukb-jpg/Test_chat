@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useAuthStore } from '../store/useAuthStore';
 
 export const apiClient = axios.create({
-  baseURL: 'http://localhost:3000', // Адреса нашого NestJS бекенду
+  baseURL: 'http://localhost:3001', // Адреса нашого NestJS бекенду
   headers: {
     'Content-Type': 'application/json',
   },
