@@ -194,7 +194,9 @@ export class RoomsService {
     }
 
     if (member.role === RoomRole.OWNER) {
-      throw new ForbiddenException('Owners cannot leave the room. Please delete the room instead.');
+      throw new ForbiddenException(
+        'Owners cannot leave the room. Please delete the room instead.',
+      );
     }
 
     await this.roomMemberRepository.remove(member);
@@ -207,7 +209,11 @@ export class RoomsService {
     return { success: true };
   }
 
-  private async verifyOwnership(userId: string, roomId: string, requireOwner: boolean) {
+  private async verifyOwnership(
+    userId: string,
+    roomId: string,
+    requireOwner: boolean,
+  ) {
     const member = await this.roomMemberRepository.findOne({
       where: { userId, roomId },
     });

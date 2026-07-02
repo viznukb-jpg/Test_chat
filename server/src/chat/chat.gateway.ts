@@ -9,6 +9,12 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+
+interface AuthenticatedSocket extends Socket {
+  data: {
+    userId: string;
+  };
+}
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from '@/redis/redis.service';
@@ -32,41 +38,39 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly configService: ConfigService,
   ) {}
 
-  async handleConnection(client: Socket) {
+  async handleConnection(client: AuthenticatedSocket) {
     try {
       const token =
-        client.handshake.auth.token ||
-        client.handshake.headers['authorization']?.split(' ')[1];
-        
+        (client.handshake.auth.token as string) ||
+        (client.handshake.headers['authorization']?.split(' ')[1] as string);
+
       if (!token) {
         throw new WsException('No token provided');
       }
 
-      const payload = this.jwtService.verify(token, {
-        secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
+      const payload = this.jwtService.verify<{ sub: string }>(token, {
+        secret:
+          this.configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
       });
-      const userId = payload.sub;
+      const userId = String(payload.sub);
 
       const session = await this.redisService.get(`auth:sessions:${userId}`);
       if (!session) {
         throw new WsException('Session expired or revoked');
       }
 
-      
       client.data.userId = userId;
-    } catch (err) {
+    } catch {
       client.disconnect();
     }
   }
 
-  handleDisconnect(client: Socket) {
-    
-  }
+  handleDisconnect() {}
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
     @MessageBody('roomId') roomId: string,
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     const userId = client.data.userId;
 
@@ -78,14 +82,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('You are not a member of this room');
     }
 
-    client.join(roomId);
+    void client.join(roomId);
     return { event: 'joinedRoom', data: roomId };
   }
 
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
     @MessageBody() data: { roomId: string; content: string },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     const userId = client.data.userId;
 
@@ -98,12 +102,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('You are not a member of this room');
     }
 
-    
     if (member.mutedUntil && member.mutedUntil > new Date()) {
-      throw new WsException(`You are muted until ${member.mutedUntil.toISOString()}`);
+      throw new WsException(
+        `You are muted until ${member.mutedUntil.toISOString()}`,
+      );
     }
 
-    
     const message = this.messageRepository.create({
       content: data.content,
       senderId: userId,
@@ -111,7 +115,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     const savedMessage = await this.messageRepository.save(message);
 
-    
     const payload = {
       id: savedMessage.id,
       content: savedMessage.content,
@@ -123,7 +126,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       },
     };
 
-    
     this.server.to(data.roomId).emit('newMessage', payload);
 
     return payload;

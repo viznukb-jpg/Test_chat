@@ -6,7 +6,7 @@ interface Message {
   id: string;
   content: string;
   createdAt: string;
-  sender: { id: string; username: string };
+  sender: { id: string; username: string } | null;
 }
 
 export const useChatSocket = (roomId: string) => {

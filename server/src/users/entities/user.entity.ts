@@ -30,7 +30,10 @@ export class User {
   @OneToMany(() => Message, (message: Message) => message.sender)
   messages!: Message[];
 
-  @OneToMany(() => RefreshToken, (refreshToken: RefreshToken) => refreshToken.user)
+  @OneToMany(
+    () => RefreshToken,
+    (refreshToken: RefreshToken) => refreshToken.user,
+  )
   refreshTokens!: RefreshToken[];
 
   @CreateDateColumn()

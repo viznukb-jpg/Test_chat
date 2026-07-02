@@ -28,7 +28,6 @@ async function bootstrap() {
 
   console.log('🌱 Починаємо сідування бази даних...');
 
-  
   const users: User[] = [];
   const passwordHash = await bcrypt.hash('password123', 10);
 
@@ -42,7 +41,6 @@ async function bootstrap() {
   }
   console.log(`✅ Створено 10 користувачів.`);
 
-  
   const rooms: Room[] = [];
   for (let i = 0; i < 3; i++) {
     const room = roomRepository.create({
@@ -53,7 +51,6 @@ async function bootstrap() {
   }
   console.log(`✅ Створено 3 кімнати.`);
 
-  
   for (const room of rooms) {
     const shuffledUsers = [...users]
       .sort(() => 0.5 - Math.random())

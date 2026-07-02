@@ -1,7 +1,8 @@
-import { IsNumber, Min } from 'class-validator';
+import { IsNumber, Min, Max } from 'class-validator';
 
 export class MuteUserDto {
   @IsNumber()
-  @Min(1)
+  @Min(5)
+  @Max(60)
   durationMins!: number;
 }

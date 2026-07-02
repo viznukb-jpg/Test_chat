@@ -19,16 +19,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
+      secretOrKey:
+        configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
     });
   }
 
   async validate(payload: JwtPayload) {
     const userId = payload.sub;
 
-    
     const sessionToken = await this.redisService.get(`auth:sessions:${userId}`);
-    
+
     if (!sessionToken) {
       throw new UnauthorizedException('Session expired or revoked');
     }

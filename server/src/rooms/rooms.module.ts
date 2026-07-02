@@ -9,10 +9,7 @@ import { Message } from '@/chat/entities/message.entity';
 import { ChatModule } from '@/chat/chat.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Room, RoomMember, Message]),
-    ChatModule,
-  ],
+  imports: [TypeOrmModule.forFeature([Room, RoomMember, Message]), ChatModule],
   controllers: [RoomsController],
   providers: [RoomsService],
   exports: [RoomsService],

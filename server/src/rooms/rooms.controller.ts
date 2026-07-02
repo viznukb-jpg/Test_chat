@@ -37,12 +37,18 @@ export class RoomsController {
   }
 
   @Get(':roomId/members')
-  async getRoomMembers(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
+  async getRoomMembers(
+    @Req() req: AuthRequest,
+    @Param('roomId') roomId: string,
+  ) {
     return this.roomsService.getRoomMembers(req.user.userId, roomId);
   }
 
   @Get(':roomId/messages')
-  async getRoomMessages(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
+  async getRoomMessages(
+    @Req() req: AuthRequest,
+    @Param('roomId') roomId: string,
+  ) {
     return this.roomsService.getRoomMessages(req.user.userId, roomId);
   }
 

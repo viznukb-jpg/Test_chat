@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '@/users/users.service';
@@ -44,7 +49,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(body.password, user.passwordHash);
+    const isPasswordValid = await bcrypt.compare(
+      body.password,
+      user.passwordHash,
+    );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -54,7 +62,7 @@ export class AuthService {
 
   async logout(userId: string) {
     await this.redisService.del(`auth:sessions:${userId}`);
-    
+
     await this.refreshTokenRepository.softDelete({ userId });
     return { success: true };
   }
@@ -62,14 +70,18 @@ export class AuthService {
   async getMe(userId: string) {
     const user = await this.usersService.findById(userId);
     if (!user) throw new NotFoundException('User not found');
-    const { passwordHash, ...result } = user;
-    return result;
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
   }
 
   async deleteAccount(userId: string) {
-    
     await this.redisService.del(`auth:sessions:${userId}`);
-    
+
     await this.usersService.delete(userId);
     return { success: true };
   }
@@ -90,7 +102,7 @@ export class AuthService {
     }
 
     const user = refreshTokenRecord.user;
-    
+
     await this.refreshTokenRepository.softRemove(refreshTokenRecord);
 
     return this.generateTokens(user.id);
@@ -99,16 +111,17 @@ export class AuthService {
   private async generateTokens(userId: string) {
     const payload = { sub: userId };
     const accessToken = this.jwtService.sign(payload);
-    
-    
-    
-    const TTL_15_MINS = 15 * 60;
-    await this.redisService.set(`auth:sessions:${userId}`, accessToken, 'EX', TTL_15_MINS);
 
-    
+    const TTL_15_MINS = 15 * 60;
+    await this.redisService.set(
+      `auth:sessions:${userId}`,
+      accessToken,
+      'EX',
+      TTL_15_MINS,
+    );
+
     const refreshTokenString = randomBytes(40).toString('hex');
-    
-    
+
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -117,7 +130,7 @@ export class AuthService {
       userId: userId,
       expiresAt,
     });
-    
+
     await this.refreshTokenRepository.save(refreshTokenEntity);
 
     return {
