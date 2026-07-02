@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { RoomMember } from '@/rooms/entities/room-member.entity';
 import { Message } from '@/chat/entities/message.entity';
+import { RefreshToken } from '@/auth/entities/refresh-token.entity';
 
 @Entity('users')
 export class User {
@@ -28,6 +29,9 @@ export class User {
 
   @OneToMany(() => Message, (message: Message) => message.sender)
   messages!: Message[];
+
+  @OneToMany(() => RefreshToken, (refreshToken: RefreshToken) => refreshToken.user)
+  refreshTokens!: RefreshToken[];
 
   @CreateDateColumn()
   createdAt!: Date;

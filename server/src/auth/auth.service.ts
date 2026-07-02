@@ -5,6 +5,11 @@ import { UsersService } from '@/users/users.service';
 import { RedisService } from '@/redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { RefreshToken } from './entities/refresh-token.entity';
+import { randomBytes } from 'crypto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +17,9 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepository: Repository<RefreshToken>,
+    private readonly configService: ConfigService,
   ) {}
 
   async register(body: RegisterDto) {
@@ -46,6 +54,8 @@ export class AuthService {
 
   async logout(userId: string) {
     await this.redisService.del(`auth:sessions:${userId}`);
+    // Soft delete all refresh tokens for this user
+    await this.refreshTokenRepository.softDelete({ userId });
     return { success: true };
   }
 
@@ -56,13 +66,56 @@ export class AuthService {
     return result;
   }
 
+  async refreshTokens(token: string) {
+    const refreshTokenRecord = await this.refreshTokenRepository.findOne({
+      where: { token },
+      relations: { user: true },
+    });
+
+    if (!refreshTokenRecord) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    if (refreshTokenRecord.expiresAt < new Date()) {
+      await this.refreshTokenRepository.softRemove(refreshTokenRecord);
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    const user = refreshTokenRecord.user;
+    
+    // Soft remove the old token
+    await this.refreshTokenRepository.softRemove(refreshTokenRecord);
+
+    return this.generateTokens(user.id);
+  }
+
   private async generateTokens(userId: string) {
     const payload = { sub: userId };
     const accessToken = this.jwtService.sign(payload);
     
-    const TTL_7_DAYS = 60 * 60 * 24 * 7;
-    await this.redisService.set(`auth:sessions:${userId}`, accessToken, 'EX', TTL_7_DAYS);
+    // Save to Redis (Whitelist)
+    // 15 mins for access token TTL in Redis
+    const TTL_15_MINS = 15 * 60;
+    await this.redisService.set(`auth:sessions:${userId}`, accessToken, 'EX', TTL_15_MINS);
 
-    return { accessToken };
+    // Generate refresh token
+    const refreshTokenString = randomBytes(40).toString('hex');
+    
+    // 7 days expiration for refresh token
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 7);
+
+    const refreshTokenEntity = this.refreshTokenRepository.create({
+      token: refreshTokenString,
+      userId: userId,
+      expiresAt,
+    });
+    
+    await this.refreshTokenRepository.save(refreshTokenEntity);
+
+    return {
+      accessToken,
+      refreshToken: refreshTokenString,
+    };
   }
 }
