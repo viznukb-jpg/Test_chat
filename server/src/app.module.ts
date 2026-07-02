@@ -7,6 +7,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RoomsModule } from './rooms/rooms.module';
 import { ChatModule } from './chat/chat.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -24,6 +25,8 @@ import { ChatModule } from './chat/chat.module';
         synchronize: true,
       }),
     }),
+
+    RedisModule,
 
     UsersModule,
 
