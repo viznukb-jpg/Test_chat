@@ -22,6 +22,10 @@ async function bootstrap() {
     getRepositoryToken(Message),
   );
 
+  console.log('🌱 Очищаємо базу даних...');
+  await userRepository.query('TRUNCATE TABLE users CASCADE;');
+  await roomRepository.query('TRUNCATE TABLE rooms CASCADE;');
+
   console.log('🌱 Починаємо сідування бази даних...');
 
   // 1. Створюємо 10 користувачів

@@ -66,6 +66,14 @@ export class AuthService {
     return result;
   }
 
+  async deleteAccount(userId: string) {
+    // 1. Delete session from Redis
+    await this.redisService.del(`auth:sessions:${userId}`);
+    // 2. Delete user from DB (cascade should handle rooms/messages where applicable)
+    await this.usersService.delete(userId);
+    return { success: true };
+  }
+
   async refreshTokens(token: string) {
     const refreshTokenRecord = await this.refreshTokenRepository.findOne({
       where: { token },

@@ -25,5 +25,10 @@ export const authApi = {
   async fetchMe() {
     const res = await apiClient.get('/auth/me');
     return res.data;
+  },
+
+  async deleteAccount() {
+    const res = await apiClient.delete('/auth/me');
+    return res.data;
   }
 };

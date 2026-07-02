@@ -22,4 +22,8 @@ export class UsersService {
     const user = this.userRepository.create(userData);
     return this.userRepository.save(user);
   }
+
+  async delete(id: string): Promise<void> {
+    await this.userRepository.delete(id);
+  }
 }

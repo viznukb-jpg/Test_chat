@@ -3,7 +3,7 @@ import { serverFetch } from '@/shared/api/server-fetch';
 import { LandingHero } from '@/features/landing/components/LandingHero';
 import { RoomList } from '@/features/rooms/components/RoomList';
 import { RoomActions } from '@/features/rooms/components/RoomActions';
-import { LogoutButton } from '@/features/auth/components/LogoutButton';
+import { UserActions } from '@/features/auth/components/UserActions';
 import styles from '@/features/rooms/styles/Rooms.module.css';
 
 export default async function HomePage() {
@@ -41,7 +41,7 @@ export default async function HomePage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Hello, {user?.username}</h1>
-        <LogoutButton className={styles.logoutBtn} />
+        <UserActions btnClassName={styles.logoutBtn} />
       </header>
 
       <RoomActions />

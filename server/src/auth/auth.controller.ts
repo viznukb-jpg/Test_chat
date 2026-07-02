@@ -38,4 +38,10 @@ export class AuthController {
   async getMe(@Req() req: AuthRequest) {
     return this.authService.getMe(req.user.userId);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('me')
+  async deleteAccount(@Req() req: AuthRequest) {
+    return this.authService.deleteAccount(req.user.userId);
+  }
 }
