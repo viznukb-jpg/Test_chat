@@ -6,6 +6,7 @@ import { roomsApi } from '@/features/rooms/api/rooms.api';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import styles from '@/features/rooms/styles/Rooms.module.css';
 import landingStyles from '@/features/landing/styles/Landing.module.css';
 
@@ -47,7 +48,7 @@ export default function HomePage() {
       setNewRoomTitle('');
       loadRooms();
     } catch (err) {
-      alert('Failed to create room');
+      toast.error('Failed to create room');
     }
   };
 
@@ -60,7 +61,7 @@ export default function HomePage() {
       loadRooms();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.message || 'Failed to join room');
+        toast.error(err.response?.data?.message || 'Failed to join room');
       }
     }
   };
@@ -130,7 +131,7 @@ export default function HomePage() {
               onClick={(e) => {
                 e.preventDefault();
                 navigator.clipboard.writeText(room.inviteCode);
-                alert('Code copied to clipboard: ' + room.inviteCode);
+                toast.success('Code copied: ' + room.inviteCode);
               }}
               title="Click to copy"
             >

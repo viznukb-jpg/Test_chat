@@ -8,6 +8,7 @@ import { useChatSocket } from '@/features/chat/hooks/useChatSocket';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
+import toast from 'react-hot-toast';
 import styles from '@/features/chat/styles/ChatWindow.module.css';
 
 interface Member {
@@ -65,7 +66,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
       loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.message || 'Failed to kick');
+        toast.error(err.response?.data?.message || 'Failed to kick');
       }
     }
   };
@@ -76,7 +77,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
       loadData();
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.message || 'Failed to mute');
+        toast.error(err.response?.data?.message || 'Failed to mute');
       }
     }
   };
@@ -88,7 +89,7 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
       router.push('/');
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.message || 'Failed to delete room');
+        toast.error(err.response?.data?.message || 'Failed to delete room');
       }
     }
   };
