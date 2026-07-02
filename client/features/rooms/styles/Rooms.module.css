@@ -143,3 +143,26 @@
   font-family: monospace;
   letter-spacing: 1px;
 }
+
+.badgeOwner {
+  background: rgba(99, 102, 241, 0.2);
+  color: #a78bfa;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.badgeMember {
+  background: rgba(255, 255, 255, 0.05);
+  color: #a0a0b0;
+  font-size: 10px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}

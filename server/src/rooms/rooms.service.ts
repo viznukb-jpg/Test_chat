@@ -29,7 +29,10 @@ export class RoomsService {
       where: { userId },
       relations: { room: true },
     });
-    return members.map((m) => m.room);
+    return members.map((m) => ({
+      ...m.room,
+      role: m.role,
+    }));
   }
 
   async getRoomMembers(userId: string, roomId: string) {

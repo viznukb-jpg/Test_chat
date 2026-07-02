@@ -23,6 +23,13 @@ export default async function HomePage() {
       serverFetch('/auth/me'),
       serverFetch('/rooms'),
     ]);
+
+    // Sort rooms: owner first, then member
+    rooms.sort((a: any, b: any) => {
+      if (a.role === 'owner' && b.role !== 'owner') return -1;
+      if (a.role !== 'owner' && b.role === 'owner') return 1;
+      return 0;
+    });
   } catch (err) {
     console.error('Failed to fetch data on server:', err);
     // If token is invalid or expired, render Landing. The client-side axios interceptor
