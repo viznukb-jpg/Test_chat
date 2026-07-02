@@ -14,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
 import { MuteUserDto } from './dto/mute-user.dto';
+import { AuthRequest } from '@/auth/interfaces/auth-request.interface';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('rooms')
@@ -21,33 +22,33 @@ export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
 
   @Get()
-  async getMyRooms(@Req() req: any) {
+  async getMyRooms(@Req() req: AuthRequest) {
     return this.roomsService.getUserRooms(req.user.userId);
   }
 
   @Post()
-  async createRoom(@Req() req: any, @Body() body: CreateRoomDto) {
+  async createRoom(@Req() req: AuthRequest, @Body() body: CreateRoomDto) {
     return this.roomsService.createRoom(req.user.userId, body.title);
   }
 
   @Post('join')
-  async joinRoom(@Req() req: any, @Body() body: JoinRoomDto) {
+  async joinRoom(@Req() req: AuthRequest, @Body() body: JoinRoomDto) {
     return this.roomsService.joinRoom(req.user.userId, body.joinCode);
   }
 
   @Get(':roomId/members')
-  async getRoomMembers(@Req() req: any, @Param('roomId') roomId: string) {
+  async getRoomMembers(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
     return this.roomsService.getRoomMembers(req.user.userId, roomId);
   }
 
   @Get(':roomId/messages')
-  async getRoomMessages(@Req() req: any, @Param('roomId') roomId: string) {
+  async getRoomMessages(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
     return this.roomsService.getRoomMessages(req.user.userId, roomId);
   }
 
   @Delete(':roomId/members/:targetUserId')
   async kickUser(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('roomId') roomId: string,
     @Param('targetUserId') targetUserId: string,
   ) {
@@ -56,7 +57,7 @@ export class RoomsController {
 
   @Patch(':roomId/members/:targetUserId/mute')
   async muteUser(
-    @Req() req: any,
+    @Req() req: AuthRequest,
     @Param('roomId') roomId: string,
     @Param('targetUserId') targetUserId: string,
     @Body() body: MuteUserDto,

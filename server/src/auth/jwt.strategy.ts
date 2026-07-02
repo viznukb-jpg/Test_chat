@@ -3,6 +3,12 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { RedisService } from '../redis/redis.service';
 
+interface JwtPayload {
+  sub: string;
+  iat?: number;
+  exp?: number;
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly redisService: RedisService) {
@@ -13,7 +19,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: JwtPayload) {
     const userId = payload.sub;
 
     // Перевірка Whitelist у Redis

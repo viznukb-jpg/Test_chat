@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 interface User {
   id: string;
@@ -23,7 +23,7 @@ export const useAuthStore = create<AuthState>()(
       logout: () => set({ user: null, accessToken: null }),
     }),
     {
-      name: 'auth-storage', // Дані будуть зберігатися в localStorage
-    }
-  )
+      name: "auth-storage",
+    },
+  ),
 );

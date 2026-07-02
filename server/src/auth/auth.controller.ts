@@ -3,6 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { AuthRequest } from './interfaces/auth-request.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -22,13 +23,13 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(HttpStatus.OK)
   @Post('logout')
-  async logout(@Req() req: any) {
+  async logout(@Req() req: AuthRequest) {
     return this.authService.logout(req.user.userId);
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
-  async getMe(@Req() req: any) {
+  async getMe(@Req() req: AuthRequest) {
     return this.authService.getMe(req.user.userId);
   }
 }
