@@ -18,7 +18,7 @@ export const useChatSocket = (roomId: string) => {
   useEffect(() => {
     if (!token) return;
 
-    const socket = io('http://localhost:3001', {
+    const socket = io('http://localhost:4000', {
       auth: { token },
     });
     

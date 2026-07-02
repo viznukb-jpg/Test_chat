@@ -14,7 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
 import { MuteUserDto } from './dto/mute-user.dto';
-import { AuthRequest } from '@/auth/interfaces/auth-request.interface';
+import type { AuthRequest } from '@/auth/interfaces/auth-request.interface';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('rooms')
