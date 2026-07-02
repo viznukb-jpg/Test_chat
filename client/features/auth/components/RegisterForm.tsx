@@ -101,6 +101,10 @@ export const RegisterForm = () => {
         <Link href="/login" className={styles.link}>
           Already have an account? <span>Sign In</span>
         </Link>
+
+        <Link href="/" className={styles.link} style={{ marginTop: '12px', display: 'block', color: '#94a3b8' }}>
+          ← Stay unauthorized
+        </Link>
       </div>
     </div>
   );

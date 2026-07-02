@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import axios from 'axios';
 import styles from '@/features/rooms/styles/Rooms.module.css';
+import landingStyles from '@/features/landing/styles/Landing.module.css';
 
 interface Room {
   id: string;
@@ -20,14 +21,14 @@ export default function HomePage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [newRoomTitle, setNewRoomTitle] = useState('');
   const [joinCode, setJoinCode] = useState('');
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!accessToken) {
-      router.push('/login');
-      return;
+    setIsMounted(true);
+    if (accessToken) {
+      loadRooms();
     }
-    loadRooms();
-  }, [accessToken, router]);
+  }, [accessToken]);
 
   const loadRooms = async () => {
     try {
@@ -64,13 +65,34 @@ export default function HomePage() {
     }
   };
 
-  if (!user) return null;
+  if (!isMounted) return null;
+
+  if (!accessToken || !user) {
+    return (
+      <div className={landingStyles.container}>
+        <header className={landingStyles.header}>
+          <div className={landingStyles.logo}>LiveChat</div>
+          <div className={landingStyles.navLinks}>
+            <Link href="/login" className={landingStyles.navLink}>Log In</Link>
+            <Link href="/register" className={`${landingStyles.navLink} ${landingStyles.navLinkPrimary}`}>Sign Up</Link>
+          </div>
+        </header>
+        <main className={landingStyles.hero}>
+          <h1 className={landingStyles.heroTitle}>Connect Instantly with LiveChat</h1>
+          <p className={landingStyles.heroSubtitle}>
+            Join rooms, chat in real-time, and experience seamless communication with a beautiful glassmorphic interface.
+          </p>
+          <Link href="/register" className={landingStyles.ctaBtn}>Get Started for Free</Link>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Hello, {user.username}</h1>
-        <button className={styles.logoutBtn} onClick={() => { logout(); router.push('/login'); }}>
+        <button className={styles.logoutBtn} onClick={() => { logout(); router.push('/'); }}>
           Log Out
         </button>
       </header>
