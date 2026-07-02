@@ -32,10 +32,10 @@ async function bootstrap() {
   const users: User[] = [];
   const passwordHash = await bcrypt.hash('password123', 10);
 
-  for (let i = 0; i < 10; i++) {
+  for (let i = 1; i <= 10; i++) {
     const user = userRepository.create({
-      username: faker.internet.username(),
-      email: faker.internet.email(),
+      username: `user${i}`,
+      email: `user${i}@example.com`,
       passwordHash,
     });
     users.push(await userRepository.save(user));
