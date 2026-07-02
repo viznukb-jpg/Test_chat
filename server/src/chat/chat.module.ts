@@ -11,5 +11,6 @@ import { RoomMember } from '@/rooms/entities/room-member.entity';
     JwtModule.register({}),
   ],
   providers: [ChatGateway],
+  exports: [ChatGateway],
 })
 export class ChatModule {}

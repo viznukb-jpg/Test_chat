@@ -14,6 +14,7 @@ export const useChatSocket = (roomId: string) => {
   const socketRef = useRef<Socket | null>(null);
   const token = useAuthStore((state) => state.accessToken);
   const [error, setError] = useState<string | null>(null);
+  const [isKicked, setIsKicked] = useState(false);
 
   useEffect(() => {
     if (!token) return;
@@ -42,6 +43,13 @@ export const useChatSocket = (roomId: string) => {
       setMessages((prev) => [...prev, message]);
     });
 
+    socket.on('userKicked', (data: { targetUserId: string }) => {
+      const currentUserId = useAuthStore.getState().user?.id;
+      if (data.targetUserId === currentUserId) {
+        setIsKicked(true);
+      }
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -53,5 +61,5 @@ export const useChatSocket = (roomId: string) => {
     }
   };
 
-  return { messages, setMessages, sendMessage, error };
+  return { messages, setMessages, sendMessage, error, isKicked };
 };

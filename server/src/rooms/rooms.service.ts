@@ -10,6 +10,7 @@ import { Room } from './entities/room.entity';
 import { RoomMember, RoomRole } from './entities/room-member.entity';
 import { Message } from '@/chat/entities/message.entity';
 import { randomBytes } from 'crypto';
+import { ChatGateway } from '@/chat/chat.gateway';
 
 @Injectable()
 export class RoomsService {
@@ -20,6 +21,7 @@ export class RoomsService {
     private readonly roomMemberRepository: Repository<RoomMember>,
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async getUserRooms(userId: string) {
@@ -127,6 +129,10 @@ export class RoomsService {
     }
 
     await this.roomMemberRepository.remove(targetMember);
+
+    // Emit event to notify the kicked user
+    this.chatGateway.server.to(roomId).emit('userKicked', { targetUserId });
+
     return { success: true };
   }
 
