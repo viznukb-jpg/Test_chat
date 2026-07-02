@@ -36,6 +36,7 @@ export const RegisterForm = () => {
       const { accessToken } = await authApi.register(data);
       
       useAuthStore.setState({ accessToken });
+      document.cookie = `accessToken=${accessToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
       const user = await authApi.fetchMe();
       
       setAuth(user, accessToken);
