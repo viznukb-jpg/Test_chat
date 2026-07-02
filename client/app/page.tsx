@@ -125,7 +125,17 @@ export default function HomePage() {
         {rooms.map((room) => (
           <Link href={`/chat/${room.id}`} key={room.id} className={styles.roomCard}>
             <h3 className={styles.roomTitle}>{room.title}</h3>
-            <span className={styles.roomCode}>Code: {room.inviteCode}</span>
+            <span 
+              className={styles.roomCode}
+              onClick={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(room.inviteCode);
+                alert('Code copied to clipboard: ' + room.inviteCode);
+              }}
+              title="Click to copy"
+            >
+              Code: {room.inviteCode}
+            </span>
           </Link>
         ))}
         {rooms.length === 0 && <p style={{ color: '#a0a0b0' }}>You haven't joined any rooms yet.</p>}
