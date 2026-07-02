@@ -91,6 +91,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const member = await this.roomMemberRepository.findOne({
       where: { userId, roomId: data.roomId },
+      relations: { user: true },
     });
 
     if (!member) {
@@ -110,15 +111,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     const savedMessage = await this.messageRepository.save(message);
 
-    // Підтягуємо дані про відправника, щоб на клієнті не писало "Unknown"
-    const messageWithSender = await this.messageRepository.findOne({
-      where: { id: savedMessage.id },
-      relations: { sender: true },
-    });
+    // Створюємо чіткий об'єкт для відправки
+    const payload = {
+      id: savedMessage.id,
+      content: savedMessage.content,
+      createdAt: savedMessage.createdAt,
+      roomId: savedMessage.roomId,
+      sender: {
+        id: member.user.id,
+        username: member.user.username,
+      },
+    };
 
     // Розсилаємо всім користувачам у цій кімнаті
-    this.server.to(data.roomId).emit('newMessage', messageWithSender);
+    this.server.to(data.roomId).emit('newMessage', payload);
 
-    return messageWithSender;
+    return payload;
   }
 }
