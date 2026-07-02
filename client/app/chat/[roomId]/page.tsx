@@ -27,14 +27,20 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
   const { messages, setMessages, sendMessage, error } = useChatSocket(roomId);
   const [content, setContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isMounted) return;
     if (!user) {
       router.push('/login');
       return;
     }
     loadData();
-  }, [roomId, user, router]);
+  }, [roomId, user, router, isMounted]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -96,6 +102,8 @@ export default function ChatRoomPage({ params }: { params: Promise<{ roomId: str
 
   const myMember = members.find(m => m.user.id === user?.id);
   const isOwner = myMember?.role === 'owner';
+
+  if (!isMounted || !user) return null;
 
   return (
     <div className={styles.container}>

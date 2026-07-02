@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { RedisService } from '@/redis/redis.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -28,6 +29,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly messageRepository: Repository<Message>,
     @InjectRepository(RoomMember)
     private readonly roomMemberRepository: Repository<RoomMember>,
+    private readonly configService: ConfigService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -41,7 +43,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       const payload = this.jwtService.verify(token, {
-        secret: process.env.JWT_SECRET || 'super-secret',
+        secret: this.configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
       });
       const userId = payload.sub;
 
@@ -108,9 +110,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     const savedMessage = await this.messageRepository.save(message);
 
-    // Розсилаємо всім користувачам у цій кімнаті
-    this.server.to(data.roomId).emit('newMessage', savedMessage);
+    // Підтягуємо дані про відправника, щоб на клієнті не писало "Unknown"
+    const messageWithSender = await this.messageRepository.findOne({
+      where: { id: savedMessage.id },
+      relations: { sender: true },
+    });
 
-    return savedMessage;
+    // Розсилаємо всім користувачам у цій кімнаті
+    this.server.to(data.roomId).emit('newMessage', messageWithSender);
+
+    return messageWithSender;
   }
 }
