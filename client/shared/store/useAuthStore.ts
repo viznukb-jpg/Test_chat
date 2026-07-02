@@ -11,7 +11,8 @@ interface User {
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  setAuth: (user: User, token: string) => void;
+  refreshToken: string | null;
+  setAuth: (user: User, token: string, refreshToken?: string) => void;
   logout: () => void;
 }
 
@@ -20,13 +21,18 @@ export const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       accessToken: null,
-      setAuth: (user, token) => {
+      refreshToken: null,
+      setAuth: (user, token, refreshToken) => {
         Cookies.set("accessToken", token, { expires: 1 });
-        set({ user, accessToken: token });
+        if (refreshToken) {
+          Cookies.set("refreshToken", refreshToken, { expires: 7 });
+        }
+        set({ user, accessToken: token, refreshToken: refreshToken || null });
       },
       logout: () => {
         Cookies.remove("accessToken");
-        set({ user: null, accessToken: null });
+        Cookies.remove("refreshToken");
+        set({ user: null, accessToken: null, refreshToken: null });
       },
     }),
     {

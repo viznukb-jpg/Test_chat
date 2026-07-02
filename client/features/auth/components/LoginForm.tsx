@@ -32,13 +32,12 @@ export const LoginForm = () => {
     try {
       setIsLoading(true);
       setServerError('');
-      const { accessToken } = await authApi.login(data);
+      const { accessToken, refreshToken } = await authApi.login(data);
       
       useAuthStore.setState({ accessToken });
-      Cookies.set('accessToken', accessToken, { path: '/', expires: 7 });
       const user = await authApi.fetchMe();
       
-      setAuth(user, accessToken);
+      setAuth(user, accessToken, refreshToken);
       router.push('/');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

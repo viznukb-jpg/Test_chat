@@ -7,6 +7,8 @@ export const metadata = {
   description: 'Chat app built with Next.js and NestJS',
 };
 
+export const revalidate = 0;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">

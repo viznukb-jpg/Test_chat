@@ -29,9 +29,7 @@ export default async function HomePage() {
       if (a.role !== 'owner' && b.role === 'owner') return 1;
       return 0;
     });
-  } catch (err) {
-    console.error('Failed to fetch data on server:', err);
-    
+  } catch {
     return <LandingHero />;
   }
 

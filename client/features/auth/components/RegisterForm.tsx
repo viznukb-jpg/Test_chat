@@ -39,13 +39,12 @@ export const RegisterForm = () => {
       setServerError('');
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
-      const { accessToken } = await authApi.register(registerData);
+      const { accessToken, refreshToken } = await authApi.register(registerData);
       
       useAuthStore.setState({ accessToken });
-      Cookies.set('accessToken', accessToken, { path: '/', expires: 7 });
       const user = await authApi.fetchMe();
       
-      setAuth(user, accessToken);
+      setAuth(user, accessToken, refreshToken);
       router.push('/');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

@@ -15,6 +15,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import type { AuthRequest } from './interfaces/auth-request.interface';
+
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
