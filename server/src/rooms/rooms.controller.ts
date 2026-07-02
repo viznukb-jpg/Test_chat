@@ -79,6 +79,11 @@ export class RoomsController {
     return this.roomsService.unmuteUser(req.user.userId, roomId, targetUserId);
   }
 
+  @Delete(':roomId/leave')
+  async leaveRoom(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
+    return this.roomsService.leaveRoom(req.user.userId, roomId);
+  }
+
   @Delete(':roomId')
   async deleteRoom(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
     return this.roomsService.deleteRoom(req.user.userId, roomId);

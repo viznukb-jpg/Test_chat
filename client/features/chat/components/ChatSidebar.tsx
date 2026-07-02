@@ -27,6 +27,7 @@ type ModalState =
   | { type: 'mute'; targetId: string }
   | { type: 'unmute'; targetId: string }
   | { type: 'delete' }
+  | { type: 'leave' }
   | null;
 
 export function ChatSidebar({ roomId, initialMembers }: ChatSidebarProps) {
@@ -50,6 +51,12 @@ export function ChatSidebar({ roomId, initialMembers }: ChatSidebarProps) {
     try {
       if (modalState.type === 'delete') {
         await roomsApi.deleteRoom(roomId);
+        router.push('/');
+        return;
+      }
+
+      if (modalState.type === 'leave') {
+        await roomsApi.leaveRoom(roomId);
         router.push('/');
         return;
       }
@@ -124,13 +131,22 @@ export function ChatSidebar({ roomId, initialMembers }: ChatSidebarProps) {
             );
           })}
         </div>
-        {isOwner && (
+        {isOwner ? (
           <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
             <button 
               onClick={() => setModalState({ type: 'delete' })}
               style={{ width: '100%', padding: '10px', background: 'rgba(255, 77, 79, 0.2)', color: '#ff4d4f', border: '1px solid rgba(255, 77, 79, 0.3)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
             >
               Delete Room
+            </button>
+          </div>
+        ) : (
+          <div style={{ padding: '20px', borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
+            <button 
+              onClick={() => setModalState({ type: 'leave' })}
+              style={{ width: '100%', padding: '10px', background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}
+            >
+              Leave Room
             </button>
           </div>
         )}
@@ -142,19 +158,22 @@ export function ChatSidebar({ roomId, initialMembers }: ChatSidebarProps) {
           modalState?.type === 'kick' ? 'Kick User' :
           modalState?.type === 'mute' ? 'Mute User' :
           modalState?.type === 'unmute' ? 'Unmute User' :
+          modalState?.type === 'leave' ? 'Leave Room' :
           'Delete Room'
         }
         message={
           modalState?.type === 'kick' ? 'Are you sure you want to kick this user from the room?' :
           modalState?.type === 'mute' ? 'Select mute duration for this user:' :
           modalState?.type === 'unmute' ? 'Are you sure you want to unmute this user?' :
+          modalState?.type === 'leave' ? 'Are you sure you want to leave this room?' :
           'Are you sure you want to delete this room? This action cannot be undone.'
         }
-        isDanger={modalState?.type === 'kick' || modalState?.type === 'delete'}
+        isDanger={modalState?.type === 'kick' || modalState?.type === 'delete' || modalState?.type === 'leave'}
         confirmText={
           modalState?.type === 'kick' ? 'Kick' :
           modalState?.type === 'mute' ? 'Mute' :
           modalState?.type === 'unmute' ? 'Unmute' :
+          modalState?.type === 'leave' ? 'Leave' :
           'Delete'
         }
         requireDuration={modalState?.type === 'mute'}

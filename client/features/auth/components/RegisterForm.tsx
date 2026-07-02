@@ -15,6 +15,10 @@ const registerSchema = z.object({
   username: z.string().min(3, { message: "Minimum 3 characters" }),
   email: z.string().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Invalid email format" }),
   password: z.string().min(6, { message: "Minimum 6 characters" }),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
@@ -33,7 +37,8 @@ export const RegisterForm = () => {
     try {
       setIsLoading(true);
       setServerError('');
-      const { accessToken } = await authApi.register(data);
+      const { confirmPassword, ...registerData } = data;
+      const { accessToken } = await authApi.register(registerData);
       
       useAuthStore.setState({ accessToken });
       document.cookie = `accessToken=${accessToken}; path=/; max-age=${60 * 60 * 24 * 7}`;
@@ -90,6 +95,17 @@ export const RegisterForm = () => {
               type="password" 
             />
             {errors.password && <span className={styles.errorText}>{errors.password.message}</span>}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Confirm Password</label>
+            <input 
+              {...register('confirmPassword')} 
+              className={styles.input} 
+              placeholder="••••••••"
+              type="password" 
+            />
+            {errors.confirmPassword && <span className={styles.errorText}>{errors.confirmPassword.message}</span>}
           </div>
 
           {serverError && <div className={styles.errorText} style={{marginBottom: 16, textAlign: 'center'}}>{serverError}</div>}
