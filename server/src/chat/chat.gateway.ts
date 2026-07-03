@@ -62,7 +62,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      // 1. Extract token: try cookie first, then handshake auth, then header
       let token: string | undefined;
 
       const rawCookie = client.handshake.headers.cookie;
@@ -91,7 +90,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
       const userId = String(payload.sub);
 
-      // 2. Compare token with Redis (same logic as JWT strategy)
       const storedToken = await this.redisService.get(
         `auth:sessions:${userId}`,
       );
@@ -113,8 +111,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: AuthenticatedSocket) {
     const userId = client.data?.userId;
-    if (userId) {
-      this.userSockets.get(userId)?.delete(client.id);
+    if (!userId) return;
+
+    const sockets = this.userSockets.get(userId);
+    sockets?.delete(client.id);
+
+    if (!sockets || sockets.size === 0) {
+      this.userSockets.delete(userId);
+      this.messageLimiter.delete(userId);
     }
   }
 

@@ -25,7 +25,9 @@ import { RedisModule } from './redis/redis.module';
         type: 'postgres',
         url: configService.get<string>('DATABASE_URL'),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        migrationsRun: configService.get<string>('NODE_ENV') === 'production',
+        migrations: ['dist/migrations/*.js'],
       }),
     }),
 
