@@ -1,33 +1,30 @@
 import axios from "axios";
 import { useAuthStore } from "../store/useAuthStore";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+
 export const apiClient = axios.create({
-  baseURL: "http://localhost:4000",
+  baseURL: API_URL,
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-apiClient.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// No need for request interceptor — cookies are sent automatically
 
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (value?: unknown) => void;
-  reject: (reason?: any) => void;
+  reject: (reason?: unknown) => void;
 }> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve();
     }
   });
   failedQueue = [];
@@ -43,8 +40,7 @@ apiClient.interceptors.response.use(
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
+          .then(() => {
             return apiClient(originalRequest);
           })
           .catch((err) => Promise.reject(err));
@@ -53,32 +49,16 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const { refreshToken, user, setAuth, logout } = useAuthStore.getState();
-
-      if (!refreshToken || !user) {
-        isRefreshing = false;
-        logout();
-        if (typeof window !== "undefined" && window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
-        return Promise.reject(error);
-      }
-
       try {
-        const { data } = await axios.post("http://localhost:4000/auth/refresh", { refreshToken });
+        // Refresh token is sent automatically via httpOnly cookie
+        await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
         
-        const newAccessToken = data.accessToken;
-        const newRefreshToken = data.refreshToken;
-        
-        setAuth(user, newAccessToken, newRefreshToken);
-        
-        originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
-        processQueue(null, newAccessToken);
+        processQueue(null);
         
         return apiClient(originalRequest);
       } catch (err) {
-        processQueue(err, null);
-        logout();
+        processQueue(err);
+        useAuthStore.getState().logout();
         if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";
         }

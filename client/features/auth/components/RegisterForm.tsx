@@ -9,7 +9,6 @@ import axios from 'axios';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import Link from 'next/link';
-import Cookies from 'js-cookie';
 
 const registerSchema = z.object({
   username: z.string().min(3, { message: "Minimum 3 characters" }),
@@ -25,7 +24,7 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 
 export const RegisterForm = () => {
   const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const setUser = useAuthStore((state) => state.setUser);
   const [serverError, setServerError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,12 +38,11 @@ export const RegisterForm = () => {
       setServerError('');
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { confirmPassword, ...registerData } = data;
-      const { accessToken, refreshToken } = await authApi.register(registerData);
-      
-      useAuthStore.setState({ accessToken });
+      // Register sets httpOnly cookies automatically
+      await authApi.register(registerData);
+      // Fetch user profile (cookie is sent automatically)
       const user = await authApi.fetchMe();
-      
-      setAuth(user, accessToken, refreshToken);
+      setUser(user);
       router.push('/');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

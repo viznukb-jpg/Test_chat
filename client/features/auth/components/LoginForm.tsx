@@ -9,7 +9,6 @@ import axios from 'axios';
 import { authApi } from '../api/auth.api';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import Link from 'next/link';
-import Cookies from 'js-cookie';
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Invalid email address" }),
@@ -20,7 +19,7 @@ type LoginFormData = z.infer<typeof loginSchema>;
 
 export const LoginForm = () => {
   const router = useRouter();
-  const setAuth = useAuthStore((state) => state.setAuth);
+  const setUser = useAuthStore((state) => state.setUser);
   const [serverError, setServerError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -32,12 +31,11 @@ export const LoginForm = () => {
     try {
       setIsLoading(true);
       setServerError('');
-      const { accessToken, refreshToken } = await authApi.login(data);
-      
-      useAuthStore.setState({ accessToken });
+      // Login sets httpOnly cookies automatically
+      await authApi.login(data);
+      // Fetch user profile (cookie is sent automatically)
       const user = await authApi.fetchMe();
-      
-      setAuth(user, accessToken, refreshToken);
+      setUser(user);
       router.push('/');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {

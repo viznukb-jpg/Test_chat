@@ -13,8 +13,8 @@ export default async function HomePage() {
     return <LandingHero />;
   }
 
-  let user = null;
-  let rooms = [];
+  let user: { username: string } | null = null;
+  let rooms: { id: string; title: string; inviteCode: string; role?: string }[] = [];
 
   try {
     
@@ -24,7 +24,7 @@ export default async function HomePage() {
     ]);
 
     
-    rooms.sort((a: { role?: string }, b: { role?: string }) => {
+    rooms.sort((a, b) => {
       if (a.role === 'owner' && b.role !== 'owner') return -1;
       if (a.role !== 'owner' && b.role === 'owner') return 1;
       return 0;

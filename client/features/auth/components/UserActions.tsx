@@ -5,6 +5,7 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 import { useRouter } from 'next/navigation';
 import { ConfirmModal } from '@/shared/components/ConfirmModal';
 import { authApi } from '../api/auth.api';
+import { apiClient } from '@/shared/api/axios';
 import toast from 'react-hot-toast';
 
 export function UserActions({ btnClassName }: { btnClassName?: string }) {
@@ -14,6 +15,12 @@ export function UserActions({ btnClassName }: { btnClassName?: string }) {
 
   const handleAction = async () => {
     if (modalType === 'logout') {
+      try {
+        // Call server to clear cookies & invalidate session
+        await apiClient.post('/auth/logout');
+      } catch {
+        // Even if server call fails, clear local state
+      }
       logout();
       router.push('/');
       router.refresh();

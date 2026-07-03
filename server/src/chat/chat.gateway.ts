@@ -8,6 +8,7 @@ import {
   OnGatewayDisconnect,
   WsException,
 } from '@nestjs/websockets';
+import { UsePipes, ValidationPipe } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 
 interface AuthenticatedSocket extends Socket {
@@ -22,8 +23,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
 import { RoomMember } from '@/rooms/entities/room-member.entity';
+import { SendMessageDto } from './dto/send-message.dto';
+import { JoinRoomDto } from './dto/join-room.dto';
+import * as cookieModule from 'cookie';
 
-@WebSocketGateway({ cors: { origin: '*' } })
+@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
+@WebSocketGateway({
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    credentials: true,
+  },
+})
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
@@ -40,9 +50,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: AuthenticatedSocket) {
     try {
-      const token =
-        (client.handshake.auth.token as string) ||
-        (client.handshake.headers['authorization']?.split(' ')[1] as string);
+      // 1. Extract token: try cookie first, then handshake auth, then header
+      let token: string | undefined;
+
+      const rawCookie = client.handshake.headers.cookie;
+      if (rawCookie) {
+        const parsed = cookieModule.parse(rawCookie);
+        token = parsed.accessToken;
+      }
+
+      if (!token) {
+        token =
+          (client.handshake.auth.token as string) ||
+          client.handshake.headers['authorization']?.split(' ')[1];
+      }
 
       if (!token) {
         throw new WsException('No token provided');
@@ -54,13 +75,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
       const userId = String(payload.sub);
 
-      const session = await this.redisService.get(`auth:sessions:${userId}`);
-      if (!session) {
+      // 2. Compare token with Redis (same logic as JWT strategy)
+      const storedToken = await this.redisService.get(
+        `auth:sessions:${userId}`,
+      );
+      if (!storedToken || storedToken !== token) {
         throw new WsException('Session expired or revoked');
       }
 
       client.data.userId = userId;
     } catch {
+      client.emit('exception', { message: 'Authentication failed' });
       client.disconnect();
     }
   }
@@ -69,29 +94,35 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
-    @MessageBody('roomId') roomId: string,
+    @MessageBody() data: JoinRoomDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    const userId = client.data.userId;
+    const userId = client.data?.userId;
+    if (!userId) {
+      throw new WsException('Not authenticated');
+    }
 
     const member = await this.roomMemberRepository.findOne({
-      where: { userId, roomId },
+      where: { userId, roomId: data.roomId },
     });
 
     if (!member) {
       throw new WsException('You are not a member of this room');
     }
 
-    void client.join(roomId);
-    return { event: 'joinedRoom', data: roomId };
+    void client.join(data.roomId);
+    return { event: 'joinedRoom', data: data.roomId };
   }
 
   @SubscribeMessage('sendMessage')
   async handleSendMessage(
-    @MessageBody() data: { roomId: string; content: string },
+    @MessageBody() data: SendMessageDto,
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
-    const userId = client.data.userId;
+    const userId = client.data?.userId;
+    if (!userId) {
+      throw new WsException('Not authenticated');
+    }
 
     const member = await this.roomMemberRepository.findOne({
       where: { userId, roomId: data.roomId },

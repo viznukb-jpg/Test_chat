@@ -11,7 +11,7 @@ import { RedisService } from '@/redis/redis.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -25,6 +25,7 @@ export class AuthService {
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepository: Repository<RefreshToken>,
     private readonly configService: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async register(body: RegisterDto) {
@@ -87,28 +88,28 @@ export class AuthService {
   }
 
   async refreshTokens(token: string) {
-    const refreshTokenRecord = await this.refreshTokenRepository.findOne({
-      where: { token },
-      relations: { user: true },
-    });
+    const result = await this.dataSource
+      .createQueryBuilder()
+      .update(RefreshToken)
+      .set({ deletedAt: new Date() })
+      .where('token = :token', { token })
+      .andWhere('deletedAt IS NULL')
+      .andWhere('expiresAt > :now', { now: new Date() })
+      .returning('*')
+      .execute();
 
-    if (!refreshTokenRecord) {
-      throw new UnauthorizedException('Invalid refresh token');
+    const row = result.raw?.[0];
+
+    if (!row) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
     }
 
-    if (refreshTokenRecord.expiresAt < new Date()) {
-      await this.refreshTokenRepository.softRemove(refreshTokenRecord);
-      throw new UnauthorizedException('Refresh token expired');
-    }
+    const userId: string = row.user_id;
 
-    const user = refreshTokenRecord.user;
-
-    await this.refreshTokenRepository.softRemove(refreshTokenRecord);
-
-    return this.generateTokens(user.id);
+    return this.generateTokens(userId);
   }
 
-  private async generateTokens(userId: string) {
+  async generateTokens(userId: string) {
     const payload = { sub: userId };
     const accessToken = this.jwtService.sign(payload);
 
@@ -119,6 +120,9 @@ export class AuthService {
       'EX',
       TTL_15_MINS,
     );
+
+    // Delete all old refresh tokens for this user before creating a new one
+    await this.refreshTokenRepository.softDelete({ userId });
 
     const refreshTokenString = randomBytes(40).toString('hex');
 

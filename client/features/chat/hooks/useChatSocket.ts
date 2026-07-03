@@ -9,18 +9,20 @@ interface Message {
   sender: { id: string; username: string } | null;
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+
 export const useChatSocket = (roomId: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const socketRef = useRef<Socket | null>(null);
-  const token = useAuthStore((state) => state.accessToken);
+  const user = useAuthStore((state) => state.user);
   const [error, setError] = useState<string | null>(null);
   const [isKicked, setIsKicked] = useState(false);
 
   useEffect(() => {
-    if (!token) return;
+    if (!user) return;
 
-    const socket = io('http://localhost:4000', {
-      auth: { token },
+    const socket = io(API_URL, {
+      withCredentials: true,
     });
     
     socketRef.current = socket;
@@ -53,7 +55,7 @@ export const useChatSocket = (roomId: string) => {
     return () => {
       socket.disconnect();
     };
-  }, [roomId, token]);
+  }, [roomId, user]);
 
   const sendMessage = (content: string) => {
     if (socketRef.current) {

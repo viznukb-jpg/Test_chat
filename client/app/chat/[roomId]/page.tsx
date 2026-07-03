@@ -13,8 +13,8 @@ export default async function ChatRoomPage({ params }: { params: Promise<{ roomI
     redirect('/');
   }
 
-  let initialMembers = [];
-  let initialMessages = [];
+  let initialMembers: { id: string; role: string; mutedUntil: string | null; user: { id: string; username: string } }[] = [];
+  let initialMessages: { id: string; content: string; sender: { id: string; username: string } | null; createdAt: string }[] = [];
 
   try {
     [initialMembers, initialMessages] = await Promise.all([
