@@ -38,6 +38,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server!: Server;
 
+  private userSockets = new Map<string, Set<string>>();
+  private readonly messageLimiter = new Map<string, number[]>();
+
+  private checkRateLimit(userId: string): boolean {
+    const now = Date.now();
+    const timestamps = (this.messageLimiter.get(userId) ?? []).filter(t => now - t < 10_000);
+    if (timestamps.length >= 15) return false;
+    timestamps.push(now);
+    this.messageLimiter.set(userId, timestamps);
+    return true;
+  }
+
   constructor(
     private readonly jwtService: JwtService,
     private readonly redisService: RedisService,
@@ -69,9 +81,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new WsException('No token provided');
       }
 
+      const secret = this.configService.get<string>('JWT_ACCESS_SECRET');
+      if (!secret) {
+        throw new WsException('JWT_ACCESS_SECRET is not defined');
+      }
+
       const payload = this.jwtService.verify<{ sub: string }>(token, {
-        secret:
-          this.configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
+        secret,
       });
       const userId = String(payload.sub);
 
@@ -84,13 +100,27 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       client.data.userId = userId;
+      void client.join(`user:${userId}`);
+      if (!this.userSockets.has(userId)) {
+        this.userSockets.set(userId, new Set());
+      }
+      this.userSockets.get(userId)!.add(client.id);
     } catch {
       client.emit('exception', { message: 'Authentication failed' });
       client.disconnect();
     }
   }
 
-  handleDisconnect() {}
+  handleDisconnect(client: AuthenticatedSocket) {
+    const userId = client.data?.userId;
+    if (userId) {
+      this.userSockets.get(userId)?.delete(client.id);
+    }
+  }
+
+  forceLeaveRoom(userId: string, roomId: string) {
+    this.server.in(`user:${userId}`).socketsLeave(roomId);
+  }
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(
@@ -122,6 +152,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data?.userId;
     if (!userId) {
       throw new WsException('Not authenticated');
+    }
+
+    if (!this.checkRateLimit(userId)) {
+      throw new WsException('Rate limit exceeded. Please wait before sending more messages.');
     }
 
     const member = await this.roomMemberRepository.findOne({

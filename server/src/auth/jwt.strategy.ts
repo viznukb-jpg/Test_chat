@@ -35,11 +35,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly redisService: RedisService,
     configService: ConfigService,
   ) {
+    const secretOrKey = configService.get<string>('JWT_ACCESS_SECRET');
+    if (!secretOrKey) {
+      throw new Error('JWT_ACCESS_SECRET is not defined in environment variables');
+    }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([extractTokenFromRequest]),
       ignoreExpiration: false,
-      secretOrKey:
-        configService.get<string>('JWT_ACCESS_SECRET') || 'super-secret',
+      secretOrKey,
       passReqToCallback: true,
     });
   }

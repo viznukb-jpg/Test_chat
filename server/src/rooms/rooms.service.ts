@@ -68,24 +68,26 @@ export class RoomsService {
   }
 
   async createRoom(userId: string, title: string): Promise<Room> {
-    const joinCode = randomBytes(4).toString('hex').toUpperCase();
+    return this.roomRepository.manager.transaction(async (manager) => {
+      const joinCode = randomBytes(4).toString('hex').toUpperCase();
 
-    const room = this.roomRepository.create({
-      title,
-      inviteCode: joinCode,
+      const room = manager.create(Room, {
+        title,
+        inviteCode: joinCode,
+      });
+
+      const savedRoom = await manager.save(room);
+
+      const ownerMember = manager.create(RoomMember, {
+        userId,
+        roomId: savedRoom.id,
+        role: RoomRole.OWNER,
+      });
+
+      await manager.save(ownerMember);
+
+      return savedRoom;
     });
-
-    const savedRoom = await this.roomRepository.save(room);
-
-    const ownerMember = this.roomMemberRepository.create({
-      userId,
-      roomId: savedRoom.id,
-      role: RoomRole.OWNER,
-    });
-
-    await this.roomMemberRepository.save(ownerMember);
-
-    return savedRoom;
   }
 
   async joinRoom(userId: string, joinCode: string): Promise<Room> {
@@ -133,6 +135,7 @@ export class RoomsService {
 
     await this.roomMemberRepository.remove(targetMember);
 
+    this.chatGateway.forceLeaveRoom(targetUserId, roomId);
     this.chatGateway.server.to(roomId).emit('userKicked', { targetUserId });
 
     return { success: true };

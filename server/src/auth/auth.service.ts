@@ -13,8 +13,12 @@ import { LoginDto } from './dto/login.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import { ConfigService } from '@nestjs/config';
+
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
 
 @Injectable()
 export class AuthService {
@@ -32,6 +36,13 @@ export class AuthService {
     const existingUser = await this.usersService.findByEmail(body.email);
     if (existingUser) {
       throw new ConflictException('Email already exists');
+    }
+
+    if (body.username) {
+      const existingUsername = await this.usersService.findByUsername(body.username);
+      if (existingUsername) {
+        throw new ConflictException('Username already exists');
+      }
     }
 
     const passwordHash = await bcrypt.hash(body.password, 10);
@@ -92,7 +103,7 @@ export class AuthService {
       .createQueryBuilder()
       .update(RefreshToken)
       .set({ deletedAt: new Date() })
-      .where('token = :token', { token })
+      .where('token = :token', { token: hashToken(token) })
       .andWhere('deletedAt IS NULL')
       .andWhere('expiresAt > :now', { now: new Date() })
       .returning('*')
@@ -130,7 +141,7 @@ export class AuthService {
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     const refreshTokenEntity = this.refreshTokenRepository.create({
-      token: refreshTokenString,
+      token: hashToken(refreshTokenString),
       userId: userId,
       expiresAt,
     });
