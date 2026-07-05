@@ -39,14 +39,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   server!: Server;
 
   private userSockets = new Map<string, Set<string>>();
-  private readonly messageLimiter = new Map<string, number[]>();
+  private async checkRateLimit(userId: string): Promise<boolean> {
+    const key = `rate_limit:chat:${userId}`;
+    const pipeline = this.redisService.multi();
+    pipeline.incr(key);
+    // Setting expiration to 10 seconds only if it's a new key (technically incr will make it 1, so we check if we should set expire, but standard practice is just multi with EXPIRE since EXPIRE resets ttl. Wait, if we use a fixed 10s window, EXPIRE 10 on first hit is better. But INCR + EXPIRE 10 on every hit is simple enough, it means a sliding window of inactivity. If we want fixed 10s window, we can use an lua script, or just get and incr)
 
-  private checkRateLimit(userId: string): boolean {
-    const now = Date.now();
-    const timestamps = (this.messageLimiter.get(userId) ?? []).filter(t => now - t < 10_000);
-    if (timestamps.length >= 15) return false;
-    timestamps.push(now);
-    this.messageLimiter.set(userId, timestamps);
+    const current = await this.redisService.get(key);
+    if (current && parseInt(current, 10) >= 15) {
+      return false;
+    }
+
+    if (!current) {
+      pipeline.expire(key, 10);
+    }
+    await pipeline.exec();
     return true;
   }
 
@@ -90,11 +97,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       });
       const userId = String(payload.sub);
 
-      const storedToken = await this.redisService.get(
-        `auth:sessions:${userId}`,
-      );
-      if (!storedToken || storedToken !== token) {
-        throw new WsException('Session expired or revoked');
+      const isBlacklisted = await this.redisService.get(`blacklist:${token}`);
+      if (isBlacklisted) {
+        throw new WsException('Token revoked');
       }
 
       client.data.userId = userId;
@@ -118,7 +123,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (!sockets || sockets.size === 0) {
       this.userSockets.delete(userId);
-      this.messageLimiter.delete(userId);
     }
   }
 
@@ -158,8 +162,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       throw new WsException('Not authenticated');
     }
 
-    if (!this.checkRateLimit(userId)) {
-      throw new WsException('Rate limit exceeded. Please wait before sending more messages.');
+    if (!(await this.checkRateLimit(userId))) {
+      throw new WsException(
+        'Rate limit exceeded. Please wait before sending more messages.',
+      );
     }
 
     const member = await this.roomMemberRepository.findOne({

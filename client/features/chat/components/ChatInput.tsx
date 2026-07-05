@@ -17,6 +17,7 @@ export function ChatInput({ onSend }: { onSend: (content: string) => void }) {
       <input 
         className="flex-1 bg-white/5 border border-white/10 rounded-full py-3.5 px-5 text-white outline-none font-inherit focus:border-indigo-500 transition-colors" 
         placeholder="Type a message..." 
+        maxLength={5000}
         value={content}
         onChange={e => setContent(e.target.value)}
       />

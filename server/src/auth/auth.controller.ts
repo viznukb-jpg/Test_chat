@@ -66,6 +66,8 @@ export class AuthController {
     return { success: true };
   }
 
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   async refresh(
@@ -73,8 +75,10 @@ export class AuthController {
     @Res({ passthrough: true }) res: express.Response,
   ) {
     // Try to get refresh token from httpOnly cookie first, then from body
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const body = req.body as Record<string, any>;
     const refreshToken =
-      req.cookies?.refreshToken || req.body?.refreshToken;
+      cookies?.refreshToken || (body?.refreshToken as string | undefined);
 
     if (!refreshToken) {
       res.status(HttpStatus.UNAUTHORIZED);
@@ -94,7 +98,14 @@ export class AuthController {
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const user = req.user as AuthUser;
-    const result = await this.authService.logout(user.userId);
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const refreshToken = cookies?.refreshToken;
+    const accessToken = cookies?.accessToken;
+    const result = await this.authService.logout(
+      user.userId,
+      refreshToken,
+      accessToken,
+    );
     this.clearTokenCookies(res);
     return result;
   }
@@ -113,7 +124,12 @@ export class AuthController {
     @Res({ passthrough: true }) res: express.Response,
   ) {
     const user = req.user as AuthUser;
-    const result = await this.authService.deleteAccount(user.userId);
+    const cookies = req.cookies as Record<string, string | undefined>;
+    const accessToken = cookies?.accessToken;
+    const result = await this.authService.deleteAccount(
+      user.userId,
+      accessToken,
+    );
     this.clearTokenCookies(res);
     return result;
   }

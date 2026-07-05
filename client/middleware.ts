@@ -1,36 +1,27 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { jwtVerify } from 'jose';
 
 export async function middleware(request: NextRequest) {
   const accessToken = request.cookies.get('accessToken')?.value;
-  const refreshToken = request.cookies.get('refreshToken')?.value;
 
-  // If no accessToken but we have refreshToken, try to refresh via backend
-  if (!accessToken && refreshToken) {
+  // Protect /chat routes
+  if (request.nextUrl.pathname.startsWith('/chat')) {
+    if (!accessToken) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
     try {
-      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-      const res = await fetch(`${API_URL}/auth/refresh`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie: `refreshToken=${refreshToken}`,
-        },
-      });
-
-      if (res.ok) {
-        // Redirect to the exact same URL so the Server Components will reload with the new cookies
-        const response = NextResponse.redirect(request.url);
-        
-        // Extract Set-Cookie headers from backend response and forward to browser
-        const setCookieHeaders = res.headers.getSetCookie();
-        for (const cookie of setCookieHeaders) {
-          response.headers.append('Set-Cookie', cookie);
-        }
-        
-        return response;
+      const secret = process.env.JWT_ACCESS_SECRET;
+      if (!secret) {
+        console.error('JWT_ACCESS_SECRET is not defined in environment');
+        return NextResponse.redirect(new URL('/login', request.url));
       }
-    } catch (e) {
-      console.error('Middleware refresh failed:', e);
+
+      await jwtVerify(accessToken, new TextEncoder().encode(secret));
+    } catch {
+      // Token is expired or invalid
+      return NextResponse.redirect(new URL('/login', request.url));
     }
   }
 

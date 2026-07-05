@@ -39,7 +39,9 @@ export class AuthService {
     }
 
     if (body.username) {
-      const existingUsername = await this.usersService.findByUsername(body.username);
+      const existingUsername = await this.usersService.findByUsername(
+        body.username,
+      );
       if (existingUsername) {
         throw new ConflictException('Username already exists');
       }
@@ -72,10 +74,23 @@ export class AuthService {
     return this.generateTokens(user.id);
   }
 
-  async logout(userId: string) {
-    await this.redisService.del(`auth:sessions:${userId}`);
-
-    await this.refreshTokenRepository.softDelete({ userId });
+  async logout(userId: string, refreshToken?: string, accessToken?: string) {
+    if (refreshToken) {
+      const hashedToken = hashToken(refreshToken);
+      await this.refreshTokenRepository.softDelete({
+        userId,
+        token: hashedToken,
+      });
+    }
+    if (accessToken) {
+      // Blacklist access token for 15 minutes (match expiration)
+      await this.redisService.set(
+        `blacklist:${accessToken}`,
+        '1',
+        'EX',
+        15 * 60,
+      );
+    }
     return { success: true };
   }
 
@@ -91,9 +106,15 @@ export class AuthService {
     };
   }
 
-  async deleteAccount(userId: string) {
-    await this.redisService.del(`auth:sessions:${userId}`);
-
+  async deleteAccount(userId: string, accessToken?: string) {
+    if (accessToken) {
+      await this.redisService.set(
+        `blacklist:${accessToken}`,
+        '1',
+        'EX',
+        15 * 60,
+      );
+    }
     await this.usersService.delete(userId);
     return { success: true };
   }
@@ -109,7 +130,8 @@ export class AuthService {
       .returning('*')
       .execute();
 
-    const row = result.raw?.[0];
+    const rawData = result.raw as Array<{ user_id: string }> | undefined;
+    const row = rawData?.[0];
 
     if (!row) {
       throw new UnauthorizedException('Invalid or expired refresh token');
@@ -123,17 +145,6 @@ export class AuthService {
   async generateTokens(userId: string) {
     const payload = { sub: userId };
     const accessToken = this.jwtService.sign(payload);
-
-    const TTL_15_MINS = 15 * 60;
-    await this.redisService.set(
-      `auth:sessions:${userId}`,
-      accessToken,
-      'EX',
-      TTL_15_MINS,
-    );
-
-    // Delete all old refresh tokens for this user before creating a new one
-    await this.refreshTokenRepository.softDelete({ userId });
 
     const refreshTokenString = randomBytes(40).toString('hex');
 

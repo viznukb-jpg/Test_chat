@@ -1,6 +1,7 @@
 import './globals.css';
 import { ReactNode } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { AuthHydrator } from '@/shared/components/AuthHydrator';
 
 export const metadata = {
   title: 'Real-time Chat',
@@ -13,6 +14,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
+        <AuthHydrator />
         <Toaster 
           position="top-center" 
           toastOptions={{ 

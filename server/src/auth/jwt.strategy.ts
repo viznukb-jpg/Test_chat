@@ -37,7 +37,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   ) {
     const secretOrKey = configService.get<string>('JWT_ACCESS_SECRET');
     if (!secretOrKey) {
-      throw new Error('JWT_ACCESS_SECRET is not defined in environment variables');
+      throw new Error(
+        'JWT_ACCESS_SECRET is not defined in environment variables',
+      );
     }
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([extractTokenFromRequest]),
@@ -51,10 +53,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const userId = payload.sub;
     const incomingToken = extractTokenFromRequest(req);
 
-    const storedToken = await this.redisService.get(`auth:sessions:${userId}`);
-
-    if (!storedToken || storedToken !== incomingToken) {
-      throw new UnauthorizedException('Session expired or revoked');
+    const isBlacklisted = await this.redisService.get(
+      `blacklist:${incomingToken}`,
+    );
+    if (isBlacklisted) {
+      throw new UnauthorizedException('Token revoked');
     }
 
     return { userId };

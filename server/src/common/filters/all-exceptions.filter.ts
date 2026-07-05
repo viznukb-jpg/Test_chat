@@ -13,12 +13,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('ExceptionFilter');
 
   catch(exception: unknown, host: ArgumentsHost) {
-    this.logger.error(
-      exception instanceof Error ? exception.stack : exception,
-    );
+    this.logger.error(exception instanceof Error ? exception.stack : exception);
 
     if (host.getType() === 'ws') {
-      const client = host.switchToWs().getClient();
+      const client = host.switchToWs().getClient<import('socket.io').Socket>();
       const message =
         exception instanceof WsException
           ? exception.getError()
@@ -34,7 +32,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     const status =
       exception instanceof HttpException ? exception.getStatus() : 500;
-    
+
     const message =
       exception instanceof HttpException
         ? exception.getResponse()

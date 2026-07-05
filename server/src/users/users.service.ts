@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { User } from './entities/user.entity';
 
 @Injectable()
@@ -8,6 +8,7 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
@@ -28,6 +29,25 @@ export class UsersService {
   }
 
   async delete(id: string): Promise<void> {
+    const ownedRoomsRaw = await this.dataSource
+      .createQueryBuilder()
+      .select('rm.roomId', 'roomId')
+      .from('room_members', 'rm')
+      .where('rm.userId = :id AND rm.role = :role', { id, role: 'owner' })
+      .getRawMany();
+
+    const ownedRooms = ownedRoomsRaw as Array<{ roomId: string }>;
+
+    if (ownedRooms.length > 0) {
+      const roomIds = ownedRooms.map((r) => r.roomId);
+      await this.dataSource
+        .createQueryBuilder()
+        .delete()
+        .from('rooms')
+        .where('id IN (:...roomIds)', { roomIds })
+        .execute();
+    }
+
     await this.userRepository.delete(id);
   }
 }

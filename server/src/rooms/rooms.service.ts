@@ -68,26 +68,54 @@ export class RoomsService {
   }
 
   async createRoom(userId: string, title: string): Promise<Room> {
-    return this.roomRepository.manager.transaction(async (manager) => {
-      const joinCode = randomBytes(4).toString('hex').toUpperCase();
+    let savedRoom: Room | null = null;
+    let attempts = 0;
 
-      const room = manager.create(Room, {
-        title,
-        inviteCode: joinCode,
-      });
+    while (!savedRoom && attempts < 5) {
+      try {
+        savedRoom = await this.roomRepository.manager.transaction(
+          async (manager) => {
+            const joinCode = randomBytes(4).toString('hex').toUpperCase();
 
-      const savedRoom = await manager.save(room);
+            const room = manager.create(Room, {
+              title,
+              inviteCode: joinCode,
+            });
 
-      const ownerMember = manager.create(RoomMember, {
-        userId,
-        roomId: savedRoom.id,
-        role: RoomRole.OWNER,
-      });
+            const saved = await manager.save(room);
 
-      await manager.save(ownerMember);
+            const ownerMember = manager.create(RoomMember, {
+              userId,
+              roomId: saved.id,
+              role: RoomRole.OWNER,
+            });
 
-      return savedRoom;
-    });
+            await manager.save(ownerMember);
+
+            return saved;
+          },
+        );
+      } catch (error: unknown) {
+        // Postgres Unique Constraint Violation code
+        const isUniqueConstraint =
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          (error as { code: string }).code === '23505';
+
+        if (isUniqueConstraint) {
+          attempts++;
+        } else {
+          throw error;
+        }
+      }
+    }
+
+    if (!savedRoom) {
+      throw new ConflictException('Failed to generate a unique invite code');
+    }
+
+    return savedRoom;
   }
 
   async joinRoom(userId: string, joinCode: string): Promise<Room> {
