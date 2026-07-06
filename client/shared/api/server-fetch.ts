@@ -11,10 +11,12 @@ export async function serverFetch(endpoint: string, options: RequestInit = {}) {
   headers.set('Content-Type', 'application/json');
 
   // Forward httpOnly cookies to the backend via Cookie header
-  // (server-side fetch doesn't send browser cookies automatically)
+  // Prevent HTTP Header Injection by stripping newlines
+  const sanitize = (val: string) => val.replace(/[\r\n]/g, '');
+
   const cookieParts: string[] = [];
-  if (accessToken) cookieParts.push(`accessToken=${accessToken}`);
-  if (refreshToken) cookieParts.push(`refreshToken=${refreshToken}`);
+  if (accessToken) cookieParts.push(`accessToken=${sanitize(accessToken)}`);
+  if (refreshToken) cookieParts.push(`refreshToken=${sanitize(refreshToken)}`);
   if (cookieParts.length > 0) {
     headers.set('Cookie', cookieParts.join('; '));
   }

@@ -8,15 +8,18 @@ import {
   Req,
   Delete,
   Patch,
+  Query,
+  ParseUUIDPipe,
 } from '@nestjs/common';
 import { RoomsService } from './rooms.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { JoinRoomDto } from './dto/join-room.dto';
 import { MuteUserDto } from './dto/mute-user.dto';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import type { AuthRequest } from '@/auth/interfaces/auth-request.interface';
 
-@UseGuards(AuthGuard('jwt'))
+@UseGuards(AuthGuard('jwt'), ThrottlerGuard)
 @Controller('rooms')
 export class RoomsController {
   constructor(private readonly roomsService: RoomsService) {}
@@ -31,6 +34,7 @@ export class RoomsController {
     return this.roomsService.createRoom(req.user.userId, body.title);
   }
 
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @Post('join')
   async joinRoom(@Req() req: AuthRequest, @Body() body: JoinRoomDto) {
     return this.roomsService.joinRoom(req.user.userId, body.joinCode);
@@ -48,8 +52,9 @@ export class RoomsController {
   async getRoomMessages(
     @Req() req: AuthRequest,
     @Param('roomId') roomId: string,
+    @Query('cursorId', new ParseUUIDPipe({ optional: true })) cursorId?: string,
   ) {
-    return this.roomsService.getRoomMessages(req.user.userId, roomId);
+    return this.roomsService.getRoomMessages(req.user.userId, roomId, cursorId);
   }
 
   @Delete(':roomId/members/:targetUserId')

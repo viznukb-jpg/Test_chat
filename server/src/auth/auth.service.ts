@@ -100,7 +100,7 @@ export class AuthService {
         APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN_SEC,
       );
     }
-    
+
     // Clear active session to immediately log out other devices
     await this.redisService.del(`active_session:${userId}`);
 

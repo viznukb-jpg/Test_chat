@@ -52,20 +52,36 @@ export class RoomsService {
     });
   }
 
-  async getRoomMessages(userId: string, roomId: string) {
+  async getRoomMessages(userId: string, roomId: string, cursorId?: string) {
     await this.verifyOwnership(userId, roomId, false);
 
-    return this.messageRepository.find({
-      where: { roomId },
-      relations: { sender: true },
-      order: { createdAt: 'ASC' },
-      select: {
-        id: true,
-        content: true,
-        createdAt: true,
-        sender: { id: true, username: true },
-      },
-    });
+    const query = this.messageRepository
+      .createQueryBuilder('message')
+      .leftJoin('message.sender', 'sender')
+      .where('message.roomId = :roomId', { roomId })
+      .orderBy('message.createdAt', 'DESC')
+      .take(50)
+      .select([
+        'message.id',
+        'message.content',
+        'message.createdAt',
+        'sender.id',
+        'sender.username',
+      ]);
+
+    if (cursorId) {
+      const cursorMessage = await this.messageRepository.findOne({
+        where: { id: cursorId },
+      });
+      if (cursorMessage) {
+        query.andWhere('message.createdAt < :createdAt', {
+          createdAt: cursorMessage.createdAt,
+        });
+      }
+    }
+
+    const messages = await query.getMany();
+    return messages.reverse();
   }
 
   async createRoom(userId: string, title: string): Promise<Room> {
@@ -79,7 +95,7 @@ export class RoomsService {
       try {
         savedRoom = await this.roomRepository.manager.transaction(
           async (manager) => {
-            const joinCode = randomBytes(4).toString('hex').toUpperCase();
+            const joinCode = randomBytes(8).toString('hex').toUpperCase();
 
             const room = manager.create(Room, {
               title,

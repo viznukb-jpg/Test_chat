@@ -9,7 +9,7 @@ export const APP_CONSTANTS = {
   },
   RATE_LIMITS: {
     AUTH_ROUTES: {
-      TTL_MS: 60000,
+      TTL_MS: 60 * 1000,
       LIMIT: 5,
     },
 

@@ -30,7 +30,9 @@ import { ChatModule } from '@/chat/chat.module';
         return {
           secret,
           signOptions: {
-            expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES_IN') || APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN) as any,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES_IN') ||
+              APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN) as any,
           },
         };
       },

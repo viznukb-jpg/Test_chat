@@ -46,7 +46,11 @@ export const RegisterForm = () => {
       router.push('/');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        setServerError(error.response?.data?.message || 'Registration failed');
+        if (error.response?.status === 429) {
+          setServerError('Too many attempts. Please try again in a minute.');
+        } else {
+          setServerError(error.response?.data?.message || 'Registration failed');
+        }
       } else {
         setServerError('An unexpected error occurred');
       }

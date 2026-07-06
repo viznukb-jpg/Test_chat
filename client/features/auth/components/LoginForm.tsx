@@ -39,7 +39,13 @@ export const LoginForm = () => {
       router.push('/');
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        setServerError(error.response?.data?.message || 'Login failed');
+        if (error.response?.status === 429) {
+          setServerError('Too many attempts. Please try again in a minute.');
+        } else if (error.response?.status === 401) {
+          setServerError('Invalid email or password');
+        } else {
+          setServerError(error.response?.data?.message || 'Login failed');
+        }
       } else {
         setServerError('An unexpected error occurred');
       }

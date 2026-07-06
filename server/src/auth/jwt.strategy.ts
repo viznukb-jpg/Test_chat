@@ -53,15 +53,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const userId = payload.sub;
     const incomingToken = extractTokenFromRequest(req);
 
-    const isBlacklisted = await this.redisService.get(`blacklist:${incomingToken}`);
+    const isBlacklisted = await this.redisService.get(
+      `blacklist:${incomingToken}`,
+    );
     if (isBlacklisted) {
       throw new UnauthorizedException('Token revoked');
     }
 
     if (payload.sessionId) {
-      const activeSession = await this.redisService.get(`active_session:${userId}`);
+      const activeSession = await this.redisService.get(
+        `active_session:${userId}`,
+      );
       if (activeSession && activeSession !== payload.sessionId) {
-        throw new UnauthorizedException('Session expired by login from another device');
+        throw new UnauthorizedException(
+          'Session expired by login from another device',
+        );
       }
     }
 

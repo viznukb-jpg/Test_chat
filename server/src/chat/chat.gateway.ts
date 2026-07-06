@@ -42,21 +42,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private userSockets = new Map<string, Set<string>>();
   private async checkRateLimit(userId: string): Promise<boolean> {
     const key = `rate_limit:chat:${userId}`;
-    const pipeline = this.redisService.multi();
-    pipeline.incr(key);
 
-    const current = await this.redisService.get(key);
-    if (
-      current &&
-      parseInt(current, 10) >= APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.LIMIT
-    ) {
+    // Atomic increment
+    const current = await this.redisService.incr(key);
+
+    // If it's the first message in the window, set the expiration
+    if (current === 1) {
+      await this.redisService.expire(
+        key,
+        APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.TTL_SEC,
+      );
+    }
+
+    if (current > APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.LIMIT) {
       return false;
     }
 
-    if (!current) {
-      pipeline.expire(key, APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.TTL_SEC);
-    }
-    await pipeline.exec();
     return true;
   }
 
@@ -95,12 +96,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new WsException('JWT_ACCESS_SECRET is not defined');
       }
 
-      const payload = this.jwtService.verify<{ sub: string; sessionId?: string }>(
-        token,
-        {
-          secret,
-        },
-      );
+      const payload = this.jwtService.verify<{
+        sub: string;
+        sessionId?: string;
+      }>(token, {
+        secret,
+      });
       const userId = String(payload.sub);
 
       const isBlacklisted = await this.redisService.get(`blacklist:${token}`);
@@ -109,7 +110,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
 
       if (payload.sessionId) {
-        const activeSession = await this.redisService.get(`active_session:${userId}`);
+        const activeSession = await this.redisService.get(
+          `active_session:${userId}`,
+        );
         if (activeSession && activeSession !== payload.sessionId) {
           throw new WsException('Session expired by login from another device');
         }
