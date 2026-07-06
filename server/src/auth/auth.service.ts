@@ -18,7 +18,7 @@ import { ConfigService } from '@nestjs/config';
 import { APP_CONSTANTS } from '@/common/constants/app.constants';
 import { ChatGateway } from '@/chat/chat.gateway';
 
-function hashToken(token: string): string {
+export function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
@@ -85,16 +85,15 @@ export class AuthService {
 
   async logout(userId: string, refreshToken?: string, accessToken?: string) {
     if (refreshToken) {
-      const hashedToken = hashToken(refreshToken);
+      // Clear all active refresh tokens for the user to enforce strict single-session
       await this.refreshTokenRepository.softDelete({
         userId,
-        token: hashedToken,
       });
     }
     if (accessToken) {
       // Blacklist access token for 15 minutes (match expiration)
       await this.redisService.set(
-        `blacklist:${accessToken}`,
+        `blacklist:${hashToken(accessToken)}`,
         '1',
         'EX',
         APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN_SEC,
@@ -125,7 +124,7 @@ export class AuthService {
   async deleteAccount(userId: string, accessToken?: string) {
     if (accessToken) {
       await this.redisService.set(
-        `blacklist:${accessToken}`,
+        `blacklist:${hashToken(accessToken)}`,
         '1',
         'EX',
         APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN_SEC,

@@ -42,19 +42,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private userSockets = new Map<string, Set<string>>();
   private async checkRateLimit(userId: string): Promise<boolean> {
     const key = `rate_limit:chat:${userId}`;
+    
+    // Atomic INCR and conditional EXPIRE using Lua script
+    const luaScript = `
+      local current = redis.call("INCR", KEYS[1])
+      if current == 1 then
+        redis.call("EXPIRE", KEYS[1], ARGV[1])
+      end
+      return current
+    `;
+    
+    const current = await this.redisService.eval(
+      luaScript,
+      1,
+      key,
+      APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.TTL_SEC,
+    );
 
-    // Atomic increment
-    const current = await this.redisService.incr(key);
-
-    // If it's the first message in the window, set the expiration
-    if (current === 1) {
-      await this.redisService.expire(
-        key,
-        APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.TTL_SEC,
-      );
-    }
-
-    if (current > APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.LIMIT) {
+    if ((current as number) > APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.LIMIT) {
       return false;
     }
 
@@ -144,6 +149,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   disconnectUser(userId: string) {
     this.server.in(`user:${userId}`).disconnectSockets(true);
+    this.userSockets.delete(userId);
   }
 
   forceLeaveRoom(userId: string, roomId: string) {
@@ -158,6 +164,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data?.userId;
     if (!userId) {
       throw new WsException('Not authenticated');
+    }
+
+    if (!(await this.checkRateLimit(userId))) {
+      throw new WsException('Rate limit exceeded');
     }
 
     const member = await this.roomMemberRepository.findOne({

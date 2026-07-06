@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { RedisService } from '../redis/redis.service';
 import { ConfigService } from '@nestjs/config';
 import { Request } from 'express';
+import { hashToken } from './auth.service';
 
 interface JwtPayload {
   sub: string;
@@ -53,11 +54,13 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     const userId = payload.sub;
     const incomingToken = extractTokenFromRequest(req);
 
-    const isBlacklisted = await this.redisService.get(
-      `blacklist:${incomingToken}`,
-    );
-    if (isBlacklisted) {
-      throw new UnauthorizedException('Token revoked');
+    if (incomingToken) {
+      const isBlacklisted = await this.redisService.get(
+        `blacklist:${hashToken(incomingToken)}`,
+      );
+      if (isBlacklisted) {
+        throw new UnauthorizedException('Token revoked');
+      }
     }
 
     if (payload.sessionId) {

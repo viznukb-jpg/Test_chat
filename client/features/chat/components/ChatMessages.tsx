@@ -13,16 +13,25 @@ interface Message {
 export function ChatMessages({
   messages,
   error,
+  onLoadMore,
+  hasMore,
+  isLoadingMore,
 }: {
   messages: Message[];
   error: string | null;
+  onLoadMore?: () => void;
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
 }) {
   const { user } = useAuthStore();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    // Only scroll to bottom on initial load or new messages at the bottom
+    if (!isLoadingMore) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isLoadingMore]);
 
   let displayError = error;
 
@@ -48,6 +57,17 @@ export function ChatMessages({
         </div>
       )}
       <div className="flex flex-col flex-1 gap-4 p-[30px] overflow-y-auto">
+        {hasMore && (
+          <div className="flex justify-center mb-2">
+            <button
+              onClick={onLoadMore}
+              disabled={isLoadingMore}
+              className="bg-white/10 hover:bg-white/20 text-white/70 text-xs px-4 py-2 rounded-full transition-colors duration-200"
+            >
+              {isLoadingMore ? "Loading..." : "Load Older Messages"}
+            </button>
+          </div>
+        )}
         {messages.map((msg) => {
           const isOwn = msg.sender?.id === user?.id;
 

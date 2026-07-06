@@ -43,7 +43,7 @@ export class RoomsController {
   @Get(':roomId/members')
   async getRoomMembers(
     @Req() req: AuthRequest,
-    @Param('roomId') roomId: string,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
   ) {
     return this.roomsService.getRoomMembers(req.user.userId, roomId);
   }
@@ -51,7 +51,7 @@ export class RoomsController {
   @Get(':roomId/messages')
   async getRoomMessages(
     @Req() req: AuthRequest,
-    @Param('roomId') roomId: string,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
     @Query('cursorId', new ParseUUIDPipe({ optional: true })) cursorId?: string,
   ) {
     return this.roomsService.getRoomMessages(req.user.userId, roomId, cursorId);
@@ -60,8 +60,8 @@ export class RoomsController {
   @Delete(':roomId/members/:targetUserId')
   async kickUser(
     @Req() req: AuthRequest,
-    @Param('roomId') roomId: string,
-    @Param('targetUserId') targetUserId: string,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
+    @Param('targetUserId', new ParseUUIDPipe({ version: '4' })) targetUserId: string,
   ) {
     return this.roomsService.kickUser(req.user.userId, roomId, targetUserId);
   }
@@ -69,8 +69,8 @@ export class RoomsController {
   @Patch(':roomId/members/:targetUserId/mute')
   async muteUser(
     @Req() req: AuthRequest,
-    @Param('roomId') roomId: string,
-    @Param('targetUserId') targetUserId: string,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
+    @Param('targetUserId', new ParseUUIDPipe({ version: '4' })) targetUserId: string,
     @Body() body: MuteUserDto,
   ) {
     return this.roomsService.muteUser(
@@ -84,19 +84,25 @@ export class RoomsController {
   @Patch(':roomId/members/:targetUserId/unmute')
   async unmuteUser(
     @Req() req: AuthRequest,
-    @Param('roomId') roomId: string,
-    @Param('targetUserId') targetUserId: string,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
+    @Param('targetUserId', new ParseUUIDPipe({ version: '4' })) targetUserId: string,
   ) {
     return this.roomsService.unmuteUser(req.user.userId, roomId, targetUserId);
   }
 
   @Delete(':roomId/leave')
-  async leaveRoom(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
+  async leaveRoom(
+    @Req() req: AuthRequest,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
+  ) {
     return this.roomsService.leaveRoom(req.user.userId, roomId);
   }
 
   @Delete(':roomId')
-  async deleteRoom(@Req() req: AuthRequest, @Param('roomId') roomId: string) {
+  async deleteRoom(
+    @Req() req: AuthRequest,
+    @Param('roomId', new ParseUUIDPipe({ version: '4' })) roomId: string,
+  ) {
     return this.roomsService.deleteRoom(req.user.userId, roomId);
   }
 }

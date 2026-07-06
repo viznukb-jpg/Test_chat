@@ -60,6 +60,7 @@ export class RoomsService {
       .leftJoin('message.sender', 'sender')
       .where('message.roomId = :roomId', { roomId })
       .orderBy('message.createdAt', 'DESC')
+      .addOrderBy('message.id', 'DESC')
       .take(50)
       .select([
         'message.id',
@@ -74,9 +75,13 @@ export class RoomsService {
         where: { id: cursorId },
       });
       if (cursorMessage) {
-        query.andWhere('message.createdAt < :createdAt', {
-          createdAt: cursorMessage.createdAt,
-        });
+        query.andWhere(
+          '(message.createdAt < :createdAt OR (message.createdAt = :createdAt AND message.id < :id))',
+          {
+            createdAt: cursorMessage.createdAt,
+            id: cursorMessage.id,
+          },
+        );
       }
     }
 

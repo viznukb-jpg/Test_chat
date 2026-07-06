@@ -11,7 +11,7 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 import Link from 'next/link';
 
 const registerSchema = z.object({
-  username: z.string().min(3, { message: "Minimum 3 characters" }),
+  username: z.string().min(3, { message: "Minimum 3 characters" }).regex(/^[a-zA-Z0-9_-]+$/, { message: "Only letters, numbers, _, -" }),
   email: z.string().regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, { message: "Invalid email format" }),
   password: z.string().min(6, { message: "Minimum 6 characters" }),
   confirmPassword: z.string(),
