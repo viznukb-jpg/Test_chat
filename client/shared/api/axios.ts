@@ -30,6 +30,23 @@ const processQueue = (error: unknown) => {
   failedQueue = [];
 };
 
+// Cross-tab synchronization
+let authChannel: BroadcastChannel | null = null;
+if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+  authChannel = new BroadcastChannel('auth_refresh_channel');
+  authChannel.onmessage = (event) => {
+    if (event.data.type === 'REFRESH_START') {
+      isRefreshing = true;
+    } else if (event.data.type === 'REFRESH_SUCCESS') {
+      isRefreshing = false;
+      processQueue(null);
+    } else if (event.data.type === 'REFRESH_FAILED') {
+      isRefreshing = false;
+      processQueue(new Error('Refresh failed in another tab'));
+    }
+  };
+}
+
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
@@ -49,16 +66,19 @@ apiClient.interceptors.response.use(
 
       originalRequest._retry = true;
       isRefreshing = true;
+      authChannel?.postMessage({ type: 'REFRESH_START' });
 
       try {
         // Refresh token is sent automatically via httpOnly cookie
         await axios.post(`${API_URL}/auth/refresh`, {}, { withCredentials: true });
         
         processQueue(null);
+        authChannel?.postMessage({ type: 'REFRESH_SUCCESS' });
         
         return apiClient(originalRequest);
       } catch (err) {
         processQueue(err);
+        authChannel?.postMessage({ type: 'REFRESH_FAILED' });
         useAuthStore.getState().logout();
         if (typeof window !== "undefined" && window.location.pathname !== "/login") {
           window.location.href = "/login";

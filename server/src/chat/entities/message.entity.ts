@@ -17,12 +17,12 @@ export class Message {
   @Column('text')
   content!: string;
 
-  @ManyToOne(() => User, (user: User) => user.messages, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user: User) => user.messages, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'senderId' })
-  sender!: User;
+  sender!: User | null;
 
-  @Column()
-  senderId!: string;
+  @Column({ nullable: true })
+  senderId!: string | null;
 
   @ManyToOne(() => Room, (room: Room) => room.messages, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'roomId' })

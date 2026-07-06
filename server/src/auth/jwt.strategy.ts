@@ -67,9 +67,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       const activeSession = await this.redisService.get(
         `active_session:${userId}`,
       );
-      if (activeSession && activeSession !== payload.sessionId) {
+      if (!activeSession || activeSession !== payload.sessionId) {
         throw new UnauthorizedException(
-          'Session expired by login from another device',
+          'Session expired or invalid',
         );
       }
     }

@@ -29,25 +29,27 @@ export class UsersService {
   }
 
   async delete(id: string): Promise<void> {
-    const ownedRoomsRaw = await this.dataSource
-      .createQueryBuilder()
-      .select('rm.roomId', 'roomId')
-      .from('room_members', 'rm')
-      .where('rm.userId = :id AND rm.role = :role', { id, role: 'owner' })
-      .getRawMany();
-
-    const ownedRooms = ownedRoomsRaw as Array<{ roomId: string }>;
-
-    if (ownedRooms.length > 0) {
-      const roomIds = ownedRooms.map((r) => r.roomId);
-      await this.dataSource
+    await this.dataSource.transaction(async (manager) => {
+      const ownedRoomsRaw = await manager
         .createQueryBuilder()
-        .delete()
-        .from('rooms')
-        .where('id IN (:...roomIds)', { roomIds })
-        .execute();
-    }
+        .select('rm.roomId', 'roomId')
+        .from('room_members', 'rm')
+        .where('rm.userId = :id AND rm.role = :role', { id, role: 'owner' })
+        .getRawMany();
 
-    await this.userRepository.delete(id);
+      const ownedRooms = ownedRoomsRaw as Array<{ roomId: string }>;
+
+      if (ownedRooms.length > 0) {
+        const roomIds = ownedRooms.map((r) => r.roomId);
+        await manager
+          .createQueryBuilder()
+          .delete()
+          .from('rooms')
+          .where('id IN (:...roomIds)', { roomIds })
+          .execute();
+      }
+
+      await manager.delete(User, id);
+    });
   }
 }

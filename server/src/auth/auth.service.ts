@@ -36,18 +36,14 @@ export class AuthService {
   ) {}
 
   async register(body: RegisterDto) {
-    const existingUser = await this.usersService.findByEmail(body.email);
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
-    }
-
+    const promises: Promise<any>[] = [this.usersService.findByEmail(body.email)];
     if (body.username) {
-      const existingUsername = await this.usersService.findByUsername(
-        body.username,
-      );
-      if (existingUsername) {
-        throw new ConflictException('Username already exists');
-      }
+      promises.push(this.usersService.findByUsername(body.username));
+    }
+    const results = await Promise.all(promises);
+    
+    if (results.some((result) => result !== null)) {
+      throw new ConflictException('Email or Username already taken');
     }
 
     const passwordHash = await bcrypt.hash(body.password, 10);

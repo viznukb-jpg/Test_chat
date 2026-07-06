@@ -118,8 +118,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         const activeSession = await this.redisService.get(
           `active_session:${userId}`,
         );
-        if (activeSession && activeSession !== payload.sessionId) {
-          throw new WsException('Session expired by login from another device');
+        if (!activeSession || activeSession !== payload.sessionId) {
+          throw new WsException('Session expired or invalid');
         }
       }
 
