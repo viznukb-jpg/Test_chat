@@ -8,11 +8,14 @@ import { AuthController } from './auth.controller';
 import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './jwt.strategy';
 import { RefreshToken } from './entities/refresh-token.entity';
+import { APP_CONSTANTS } from '@/common/constants/app.constants';
+import { ChatModule } from '@/chat/chat.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([RefreshToken]),
     UsersModule,
+    ChatModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -27,8 +30,7 @@ import { RefreshToken } from './entities/refresh-token.entity';
         return {
           secret,
           signOptions: {
-            expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES_IN') ||
-              '15m') as '15m',
+            expiresIn: (configService.get<string>('JWT_ACCESS_EXPIRES_IN') || APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN) as any,
           },
         };
       },

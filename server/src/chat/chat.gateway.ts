@@ -10,6 +10,7 @@ import {
 } from '@nestjs/websockets';
 import { UsePipes, ValidationPipe } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
+import { APP_CONSTANTS } from '@/common/constants/app.constants';
 
 interface AuthenticatedSocket extends Socket {
   data: {
@@ -43,15 +44,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const key = `rate_limit:chat:${userId}`;
     const pipeline = this.redisService.multi();
     pipeline.incr(key);
-    // Setting expiration to 10 seconds only if it's a new key (technically incr will make it 1, so we check if we should set expire, but standard practice is just multi with EXPIRE since EXPIRE resets ttl. Wait, if we use a fixed 10s window, EXPIRE 10 on first hit is better. But INCR + EXPIRE 10 on every hit is simple enough, it means a sliding window of inactivity. If we want fixed 10s window, we can use an lua script, or just get and incr)
 
     const current = await this.redisService.get(key);
-    if (current && parseInt(current, 10) >= 15) {
+    if (
+      current &&
+      parseInt(current, 10) >= APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.LIMIT
+    ) {
       return false;
     }
 
     if (!current) {
-      pipeline.expire(key, 10);
+      pipeline.expire(key, APP_CONSTANTS.RATE_LIMITS.WEBSOCKET_CHAT.TTL_SEC);
     }
     await pipeline.exec();
     return true;
@@ -92,14 +95,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new WsException('JWT_ACCESS_SECRET is not defined');
       }
 
-      const payload = this.jwtService.verify<{ sub: string }>(token, {
-        secret,
-      });
+      const payload = this.jwtService.verify<{ sub: string; sessionId?: string }>(
+        token,
+        {
+          secret,
+        },
+      );
       const userId = String(payload.sub);
 
       const isBlacklisted = await this.redisService.get(`blacklist:${token}`);
       if (isBlacklisted) {
         throw new WsException('Token revoked');
+      }
+
+      if (payload.sessionId) {
+        const activeSession = await this.redisService.get(`active_session:${userId}`);
+        if (activeSession && activeSession !== payload.sessionId) {
+          throw new WsException('Session expired by login from another device');
+        }
       }
 
       client.data.userId = userId;
@@ -124,6 +137,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!sockets || sockets.size === 0) {
       this.userSockets.delete(userId);
     }
+  }
+
+  disconnectUser(userId: string) {
+    this.server.in(`user:${userId}`).disconnectSockets(true);
   }
 
   forceLeaveRoom(userId: string, roomId: string) {

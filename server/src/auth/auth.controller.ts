@@ -16,6 +16,7 @@ import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import express from 'express';
+import { APP_CONSTANTS } from '@/common/constants/app.constants';
 
 interface AuthUser {
   userId: string;
@@ -26,7 +27,7 @@ const COOKIE_OPTIONS_ACCESS = {
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
   path: '/',
-  maxAge: 15 * 60 * 1000, // 15 minutes
+  maxAge: APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN_MS,
 };
 
 const COOKIE_OPTIONS_REFRESH = {
@@ -34,7 +35,7 @@ const COOKIE_OPTIONS_REFRESH = {
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax' as const,
   path: '/',
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  maxAge: APP_CONSTANTS.AUTH.REFRESH_TOKEN_EXPIRES_IN_MS,
 };
 
 @Controller('auth')
@@ -42,7 +43,12 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({
+    default: {
+      limit: APP_CONSTANTS.RATE_LIMITS.AUTH_ROUTES.LIMIT,
+      ttl: APP_CONSTANTS.RATE_LIMITS.AUTH_ROUTES.TTL_MS,
+    },
+  })
   @Post('register')
   async register(
     @Body() body: RegisterDto,
@@ -54,7 +60,12 @@ export class AuthController {
   }
 
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({
+    default: {
+      limit: APP_CONSTANTS.RATE_LIMITS.AUTH_ROUTES.LIMIT,
+      ttl: APP_CONSTANTS.RATE_LIMITS.AUTH_ROUTES.TTL_MS,
+    },
+  })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(
@@ -67,7 +78,12 @@ export class AuthController {
   }
 
   @UseGuards(ThrottlerGuard)
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @Throttle({
+    default: {
+      limit: APP_CONSTANTS.RATE_LIMITS.AUTH_ROUTES.LIMIT,
+      ttl: APP_CONSTANTS.RATE_LIMITS.AUTH_ROUTES.TTL_MS,
+    },
+  })
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
   async refresh(

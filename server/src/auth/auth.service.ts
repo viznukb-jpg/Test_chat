@@ -15,6 +15,8 @@ import { Repository, DataSource } from 'typeorm';
 import { RefreshToken } from './entities/refresh-token.entity';
 import { randomBytes, createHash } from 'crypto';
 import { ConfigService } from '@nestjs/config';
+import { APP_CONSTANTS } from '@/common/constants/app.constants';
+import { ChatGateway } from '@/chat/chat.gateway';
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
@@ -30,6 +32,7 @@ export class AuthService {
     private readonly refreshTokenRepository: Repository<RefreshToken>,
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async register(body: RegisterDto) {
@@ -71,6 +74,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Single session constraint: log out from all other devices
+    await this.refreshTokenRepository.softDelete({ userId: user.id });
+
+    // Kick from WS immediately
+    this.chatGateway.disconnectUser(user.id);
+
     return this.generateTokens(user.id);
   }
 
@@ -88,9 +97,16 @@ export class AuthService {
         `blacklist:${accessToken}`,
         '1',
         'EX',
-        15 * 60,
+        APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN_SEC,
       );
     }
+    
+    // Clear active session to immediately log out other devices
+    await this.redisService.del(`active_session:${userId}`);
+
+    // Disconnect any active WebSockets
+    this.chatGateway.disconnectUser(userId);
+
     return { success: true };
   }
 
@@ -112,9 +128,13 @@ export class AuthService {
         `blacklist:${accessToken}`,
         '1',
         'EX',
-        15 * 60,
+        APP_CONSTANTS.AUTH.ACCESS_TOKEN_EXPIRES_IN_SEC,
       );
     }
+
+    await this.redisService.del(`active_session:${userId}`);
+    this.chatGateway.disconnectUser(userId);
+
     await this.usersService.delete(userId);
     return { success: true };
   }
@@ -143,13 +163,23 @@ export class AuthService {
   }
 
   async generateTokens(userId: string) {
-    const payload = { sub: userId };
+    const sessionId = randomBytes(16).toString('hex');
+    const payload = { sub: userId, sessionId };
     const accessToken = this.jwtService.sign(payload);
+
+    await this.redisService.set(
+      `active_session:${userId}`,
+      sessionId,
+      'EX',
+      APP_CONSTANTS.AUTH.REFRESH_TOKEN_EXPIRES_IN_DAYS * 24 * 60 * 60,
+    );
 
     const refreshTokenString = randomBytes(40).toString('hex');
 
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
+    expiresAt.setDate(
+      expiresAt.getDate() + APP_CONSTANTS.AUTH.REFRESH_TOKEN_EXPIRES_IN_DAYS,
+    );
 
     const refreshTokenEntity = this.refreshTokenRepository.create({
       token: hashToken(refreshTokenString),

@@ -1,0 +1,24 @@
+export const APP_CONSTANTS = {
+  AUTH: {
+    ACCESS_TOKEN_EXPIRES_IN: '15m',
+    ACCESS_TOKEN_EXPIRES_IN_SEC: 15 * 60,
+    ACCESS_TOKEN_EXPIRES_IN_MS: 15 * 60 * 1000,
+
+    REFRESH_TOKEN_EXPIRES_IN_DAYS: 7,
+    REFRESH_TOKEN_EXPIRES_IN_MS: 7 * 24 * 60 * 60 * 1000,
+  },
+  RATE_LIMITS: {
+    AUTH_ROUTES: {
+      TTL_MS: 60000,
+      LIMIT: 5,
+    },
+
+    WEBSOCKET_CHAT: {
+      TTL_SEC: 10,
+      LIMIT: 15,
+    },
+  },
+  ROOMS: {
+    INVITE_CODE_RETRY_ATTEMPTS: 5,
+  },
+};

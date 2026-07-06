@@ -11,6 +11,7 @@ import { RoomMember, RoomRole } from './entities/room-member.entity';
 import { Message } from '@/chat/entities/message.entity';
 import { randomBytes } from 'crypto';
 import { ChatGateway } from '@/chat/chat.gateway';
+import { APP_CONSTANTS } from '@/common/constants/app.constants';
 
 @Injectable()
 export class RoomsService {
@@ -71,7 +72,10 @@ export class RoomsService {
     let savedRoom: Room | null = null;
     let attempts = 0;
 
-    while (!savedRoom && attempts < 5) {
+    while (
+      !savedRoom &&
+      attempts < APP_CONSTANTS.ROOMS.INVITE_CODE_RETRY_ATTEMPTS
+    ) {
       try {
         savedRoom = await this.roomRepository.manager.transaction(
           async (manager) => {
